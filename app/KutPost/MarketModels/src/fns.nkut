@@ -1,0 +1,85 @@
+// Copyright 25-Jun-2024 ºDeme
+// GNU General Public License - V3 <http://www.gnu.org/licenses/>
+
+/// Global functions.
+
+import "cts";
+
+/// Calculates statistis.
+/// For 'average' and 'crrAverage' returns one value for each investor (col).
+/// For 'deviation' returns only only one value with the deviation of the
+/// greater 'crrAverage' value,
+///   tp: Type of statistics ("average", "crrAverage", "deviation")
+///   Rss: Values to make calculations. (days (rows) x invs (cols))
+/// NOTE: When in a calculus, some historic value is -1, the final result is
+///       also -1.
+/// \s, [[n.]] -> [n.]
+stats = \tp, :arr Vss -> {
+  nrows = Vss.size();
+  ncols = arr.size(Vss[0]);
+
+  // SUM
+
+  :arr Sums = arr.mk(ncols, 0.0);
+  SNs = arr.mk(ncols, 0.0);
+  for (r = 0:nrows) {
+    Row = Vss[r];
+    for (c = 0:ncols) {
+      v = Row[c];
+      sm = Sums[c];
+      if (sm < 0.0 | v < 0.0) Sums[c] = -1.0;
+      else {
+        Sums[c] += v;
+        SNs[c] += 1.0;
+      }
+    }
+  }
+
+  // AVG
+
+  :arr Avgs = Sums.copy();
+  for (c = 0:ncols)
+    if (Avgs[c] < 0.0) Avgs[c] = -1.0;
+    else Avgs[c] /= SNs[c];
+
+  if (tp == cts.Stats[1])
+    return Avgs.map(math.toInt);                        // average -------------
+
+  // DEVIATION SUMS
+
+  nrows1 = nrows - 1;
+  Slopes = [];
+  for (c = 0:ncols)
+    Slopes.push((Vss[nrows1][c] - Vss[0][c]) / nrows);
+
+  :arr Dsums = arr.mk(ncols, 0.0);
+  Row0 = Vss[0];
+  for (r = 0:nrows) {
+    Rowf = Vss[r];
+    for (c = 0:ncols) {
+      if (Avgs[c] < 0.0) Dsums[c] = -1.0;
+      else Dsums[c] += Math.abs(Rowf[c] - Row0[c] + r * Slopes[c]);
+    }
+  }
+
+  maxDvV = [-1.0];
+  maxCrrV = [-1.0];
+  for (c = 0:ncols) {
+    if (Avgs[c] > 0.0) {
+      dv = Dsums[c] / SNs[c];
+      v = Avgs[c] - dv;
+      Dsums[c] = v;
+      if (v > maxCrrV!) {
+        maxCrrV! = v;
+        maxDvV! = dv / Avgs[c];
+      }
+    }
+  }
+
+  if (tp == cts.Stats[2])
+    return Dsums.map(math.toInt);                       // corrected average ---
+
+  // DEVIATIONS
+
+  return [math.toInt(maxDvV! * 10_000)];                // deviations ----------
+};

@@ -1,0 +1,32 @@
+// Copyright 09-Jan-2025 ºDeme
+// GNU General Public License - V3 <http://www.gnu.org/licenses/>
+
+/// Historic data from YAHOO.
+
+do "import puppeteer from 'puppeteer'";
+puppet = eval "puppeteer";
+
+/// \s -> s
+read = async \url -> {
+  browser = await puppet.launch({headless: "new"});
+  page = await browser.newPage();
+  await page.goto(url);
+
+  await page.waitForNetworkIdle();
+  b = eval "await page.$('button ::-p-text(Ir al final)')";
+  await b.click();
+  await page.waitForNetworkIdle();
+
+  b2 = eval "await page.$('button ::-p-text(Rechazar todo)')";
+  await b2.click();
+  await page.waitForNetworkIdle();
+
+//  await timer.delay(2000, \-> {});
+
+  html = await page.content();
+
+  await browser.close();
+
+  return html;
+};
+

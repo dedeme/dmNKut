@@ -1,0 +1,77 @@
+// Copyright 25-Jun-2024 ºDeme
+// GNU General Public License - V3 <http://www.gnu.org/licenses/>
+
+/// Fix model.
+
+import "../model";
+import "doc/qfixDoc";
+
+/// Returns a new 'qfix' model.
+/// \ -> <model>
+mk = \ -> return model.mk(
+    "QFIJO",
+    "Quantum fijo",
+    qfixDoc.text,
+    ["Salto"],
+    [model.percParam],
+    refs
+  );;
+
+// \[[n.].], [n.] -> [[n.].]
+refs = \:arr Closes, :arr Params -> {
+  jmp = Params[0] + 1;
+  lgJmp = Math.log(jmp);
+
+  // \n -> n
+  downGap = \q -> return Math.pow(jmp, Math.round(Math.log(q)/lgJmp) - 1);;
+  // \n -> n
+  upGap = \q -> return Math.pow(jmp, Math.round(Math.log(q)/lgJmp) + 1);;
+  // \n, n -> n
+  downGap2 = \q, ref -> {
+    ref2 = ref * jmp;
+    return ref2 * Math.sqrt(jmp) >= q ? ref : downGap2(q, ref2);
+  };
+  // \n, n -> n
+  upGap2 = \q, ref -> {
+    ref2 = ref / jmp;
+    return ref2 / Math.sqrt(jmp) <= q ? ref : upGap2(q, ref2);
+  };
+
+  :arr Cls0 = Closes[0];
+  ndates = Closes.size();
+  ncos = Cls0.size();
+
+  AllRefs = []; // [[n.].]
+
+  Refs = []; // [n.]
+  for (cl = Cls0)
+    Refs.push(Math.pow(jmp, Math.round(Math.log(cl)/lgJmp) - 1) / jmp);
+
+  AllRefs.push(Refs.copy());
+  for (idate = 1:ndates) {
+    ClosesR = Closes[idate];
+    PrvCloses = Closes[idate - 1];
+
+    for (ico = 0:ncos) {
+      q0 = PrvCloses[ico];
+      ref = Refs[ico];
+      q = ClosesR[ico];
+
+      if (q0 <= ref) {
+        if (q < q0) {
+          Refs[ico] = upGap2(q, ref);
+        } else if (q > ref) {
+          Refs[ico] = downGap(q);
+        }
+      } else {
+        if (q > q0) {
+          Refs[ico] = downGap2(q, ref);
+        } else if (q < ref) {
+          Refs[ico] = upGap(q);
+        }
+      }
+    }
+    AllRefs.push(Refs.copy());
+  }
+  return AllRefs;
+};

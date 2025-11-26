@@ -1,0 +1,14 @@
+// Copyright 04-Aug-2024 ºDeme
+// GNU General Public License - V3 <http://www.gnu.org/licenses/>
+
+/// Company file.
+
+/// Constructor.
+/// Values <= 0 are not valid ones.
+///   open : Open value.
+///   close: Close value.
+///   max  : Maximum value.
+///   min  : Minimum value.
+///   vol  : Volume value.
+/// \n,n,n,n,n -> <fileQ>
+mk : open, close, max, min, vol;

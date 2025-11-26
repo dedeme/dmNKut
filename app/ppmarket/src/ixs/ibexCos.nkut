@@ -1,0 +1,58 @@
+// Copyright 06-Aug-2024 ºDeme
+// GNU General Public License - V3 <http://www.gnu.org/licenses/>
+
+/// Ibex code companies.
+
+import "readers/common";
+
+/// Returns Result<{sv:netServer, Cs:codes, Ws:warnings}>
+/// \ -> [({sv: s, Cs: [s.], Ws: [s.]}|s), b]
+read = async \ -> {
+  sv = "BYM";
+  url = "https://www.bolsasymercados.es/bme-exchange/es/" +
+        "Mercados-y-Cotizaciones/Acciones/Mercado-Continuo/Precios/" +
+        "ibex-35-ES0SI0000005";
+  :str html = await common.read(url, 2000);
+
+  startV = [html.indexFrom("<tbody ", 0)];
+  if (startV! == -1)
+    return ["Page start (1) '<tbody ' not found", false];
+  startV! = html.indexFrom("<tbody ", startV! + 7);
+  if (startV! == -1)
+    return ["Page start (2) '<tbody ' not found", false];
+  start = startV!;
+  end = html.indexFrom("</tbody>", start);
+  if (end == -1)
+    return ["Page end '</tbody>' not found", false];
+
+  Cs = []; // [s.]
+  Ws = []; // [s.]
+  trEndV = [start];
+  while () {
+    trStart = html.indexFrom("<tr", trEndV!);
+    if (trStart == -1 | trStart > end) break;
+
+    trEndV! = html.indexFrom("</tr>", trStart);
+    if (trEndV! == -1 | trEndV! > end) {
+      Ws.push("End of row '</tr>' not found");
+      break;
+    }
+
+    // CODE
+
+    codeStart = html.indexFrom("/Ficha/", trStart);
+    if (codeStart == -1 | codeStart > trEndV!) {
+      Ws.push("Code start '/Ficha/' not found");
+      continue;
+    }
+    codeEnd = html.indexFrom('"', codeStart);
+    if (codeEnd == -1 | codeEnd > trEndV!) {
+      Ws.push("Code end '\"' not found");
+      continue;
+    }
+    code = html[codeStart + 7:codeEnd];
+    Cs.push(code);
+  }
+
+  return [{sv, Cs, Ws}, true];
+};

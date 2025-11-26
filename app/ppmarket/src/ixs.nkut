@@ -1,0 +1,22 @@
+// Copyright 05-Aug-2024 ºDeme
+// GNU General Public License - V3 <http://www.gnu.org/licenses/>
+
+/// Indexes data.
+
+import "ixs/ibex";
+import "ixs/ibexCos";
+import "ixs/ixs";
+
+/// Returns several Result<dictionary>.
+/// \{*.} -> [({*.}|s), b]
+process = async \Rq -> {
+  switch (Rq.sv) {
+    // Returns [({Qs: [<historicQ>.], Ws: [s.]}|s), b]
+    "IBEX": return await ibex.read();
+    // Returns [({sv: s, Cs: [s.], Ws: [s.]}|s), b]
+    "IBEX_COS": return await ibexCos.read();
+    // Returns [({Ibex: [n, n], Euro: [n, n], Ws: [s.]}|s), b]
+    "IXS": return await ixs.read();
+    default: throw "Server not found: " + Rq.sv;
+  }
+};

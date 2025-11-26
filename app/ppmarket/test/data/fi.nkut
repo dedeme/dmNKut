@@ -1,0 +1,10 @@
+// Copyright 08-Sep-2025 ºDeme
+// GNU General Public License - V3 <http://www.gnu.org/licenses/>
+
+/// Fixec income data.
+
+/// Constructor
+///   date: Las operation date.
+///   irr : Internal rate of retun
+/// \s,n -> <fi>
+mk : date, irr;

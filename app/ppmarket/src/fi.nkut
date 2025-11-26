@@ -1,0 +1,21 @@
+// Copyright 08-Sep-2025 ºDeme
+// GNU General Public License - V3 <http://www.gnu.org/licenses/>
+
+/// Fixed income data.
+
+import "fi/bym";
+import "fi/auctions";
+
+/// Returns data of fixed incomes. (Result<*>)
+/// \{*.} -> [(*|s), b]
+process = async \Rq -> {
+  switch (Rq.sv) {
+    // Returns [(<fi>|s), b] :: (Result<fi>)
+    "BYM": return await bym.read(Rq.code);
+    // Returns [({Auctions: [[s,s,s].], Ws: [s.]}|s), b]
+    // Each element of Auctions array are dates of:
+    //  [auction, issuance, expiration]
+    "AUCTIONS": return await auctions.read();
+    default: throw "Server not found: " + Rq.sv;
+  }
+};

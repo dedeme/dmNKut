@@ -1,0 +1,44 @@
+// Copyright 04-Aug-2024 ºDeme
+// GNU General Public License - V3 <http://www.gnu.org/licenses/>
+
+/// Historic data test.
+
+import "data/historicQ";
+import "test";
+
+/// \ -> [([({Qs: [<historicQ>.], Ws: [s.]}|s), b]|s), b]
+bym = \ -> {
+  return test.rq({
+    rq: "historic",
+    sv: "BYM",
+    code: "Acerinox-ES0132105018"
+  });
+};
+
+/// \ -> [([({Qs: [<historicQ>.], Ws: [s.]}|s), b]|s), b]
+exp = \ -> {
+  return test.rq({
+    rq: "historic",
+    sv: "EXP",
+    code: "acerinox_M.ACX"
+  });
+};
+
+/// \ -> [([({Qs: [<historicQ>.], Ws: [s.]}|s), b]|s), b]
+pcb = \ -> {
+  return test.rq({
+    rq: "historic",
+    sv: "PCB",
+    code: "Acerinox"
+  });
+};
+
+/// \ -> [([({Qs: [<historicQ>.], Ws: [s.]}|s), b]|s), b]
+yahoo = \ -> {
+  return test.rq({
+    rq: "historic",
+    sv: "YAHOO",
+    code: "ACX.MC"
+  });
+};
+

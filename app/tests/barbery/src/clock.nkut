@@ -1,0 +1,22 @@
+// Copyright 23-Jun-2024 ºDeme
+// GNU General Public License - V3 <http://www.gnu.org/licenses/>
+
+import "cts";
+
+/// [b]
+timeOverV = [false];
+
+// n
+tmStartV = [time.now()];
+
+/// \[b], <timer> -> ()
+run = \endV, :timer tm -> {
+  if (thread.sleep(tmStartV, cts.clockTime)) return;
+
+  sys.println("Clock: Time is over");
+  timeOverV! = true;
+
+  tm.stop();
+  endV! = true;
+};
+

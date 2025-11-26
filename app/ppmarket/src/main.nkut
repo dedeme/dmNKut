@@ -1,0 +1,71 @@
+// Copyright 04-Aug-2024 ºDeme
+// GNU General Public License - V3 <http://www.gnu.org/licenses/>
+
+/// Puppeteer utilities for market.
+///
+/// Call with "node /dm/dmNkut/app/ppmarket/js/main.js <REQUEST>" or
+/// with "ppmarket <REQUEST>"
+/// Where 'ppmarket' is the following bash script:
+///   node /dm/dmNkut/app/ppmarket/js/main.js $*
+///
+/// REQUEST is a dictionary codified with 'b64.encode(js.w(<DIC>))'.
+///
+/// The main field of REQUEST has the key 'rq' and a string value.
+///
+/// The other fields depend on the 'rq' value:
+///
+/// REQUEST types (values of rq field):
+///   "historic": Historic companies data.
+///   "file"    : Last company data (open, close, max, min and volume).
+///   "daily"   : Last companies data (after market is close).
+///   "current" : Current companies data when market is open.
+///   "ixs"     : Indices data.
+///   "fi"      : Fix income data.
+
+import "historic";
+import "qfile";
+import "daily";
+import "current";
+import "ixs";
+import "fi";
+
+import "fi/auctions";
+
+//: \ -> ()
+test = async \ -> {
+  //sys.println("No implemented");
+  sys.println(js.w(await auctions.read()));
+};
+
+//: \ -> ()
+help = \ -> {
+  sys.printError("""
+      Use
+        node .../ppmarket/js/main.js <REQUEST>
+      where REQUEST is a dictionary codified with 'b64.encode(js.w(<DIC>))'.
+      """
+  );
+};
+
+:arr Args = sys.args();
+
+if (Args.size() != 3) {
+  help();
+  sys.exit(0);
+}
+
+fn = async \ -> {
+  if (Args[2] == "test") {await test(); return;}
+
+  Rq = js.r(b64.decode(Args[2]));
+  switch (Rq.rq) {
+    "historic": sys.print(js.w(await historic.process(Rq)));
+    "file": sys.print(js.w(await qfile.process(Rq)));
+    "daily": sys.print(js.w(await daily.process(Rq)));
+    "current": sys.print(js.w(await current.process(Rq)));
+    "ixs": sys.print(js.w(await ixs.process(Rq)));
+    "fi": sys.print(js.w(await fi.process(Rq)));
+    default: throw "Value of Rq.rq not valid: " + Rq.rq;
+  }
+};
+fn();

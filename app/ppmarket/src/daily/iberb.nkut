@@ -1,0 +1,183 @@
+// Copyright 05-Aug-2024 ºDeme
+// GNU General Public License - V3 <http://www.gnu.org/licenses/>
+
+/// Daily data from IBERB.
+
+import "readers/common";
+import "data/dailyQ";
+
+/// Returns Result<{Qs:quotes, Ws:warnings}>
+/// \ -> [({Qs: [<dailyQ>.], Ws: [s.]}|s), b]
+read = async \ -> {
+  url = "https://www.iberbolsa.com/users/cotizaciones.asp?sector=500";
+  :str html = await common.read(url, 2000);
+
+  start = html.indexFrom("vol.en_€", 0);
+  if (start == -1)
+    return ["Page start 'vol.en_€' not found", false];
+  end = html.indexFrom("Cotizaciones con retardo", start);
+  if (end == -1)
+    return ["Page end 'Cotizaciones con retardo' not found", false];
+
+  Qs = []; // [<currentQ>.]
+  Ws = []; // [s.]
+  trEndV = [start];
+  while () {
+    trStart = html.indexFrom("<tr", trEndV!);
+    if (trStart == -1 | trStart > end) break;
+
+    trEndV! = html.indexFrom("</tr>", trStart);
+    if (trEndV! == -1 | trEndV! > end) {
+      if (trEndV! == -1) Ws.push("End of row '</tr>' not found");
+      break;
+    }
+
+    // CODE
+
+    codeStart = html.indexFrom("nemo=", trStart);
+    if (codeStart == -1 | codeStart > trEndV!) {
+      Ws.push("Code start 'nemo=' not found");
+      continue;
+    }
+    codeEnd = html.indexFrom('"', codeStart);
+    if (codeEnd == -1 | codeEnd > trEndV!) {
+      Ws.push("Code end '\"' not found");
+      continue;
+    }
+    code = html[codeStart + 5:codeEnd];
+
+    // CLOSE
+
+    closeStartV = [html.indexFrom("<td ", codeEnd)];
+    if (closeStartV! == -1 | closeStartV! > trEndV!) {
+      Ws.push(code + ": Close start (1) '<td ' not found");
+      continue;
+    }
+    closeStartV! = html.indexFrom("<td ", closeStartV! + 4);
+    if (closeStartV! == -1 | closeStartV! > trEndV!) {
+      Ws.push(code + ": Close start (2) '<td ' not found");
+      continue;
+    }
+    closeStartV! = html.indexFrom("<b>", closeStartV! + 4);
+    if (closeStartV! == -1 | closeStartV! > trEndV!) {
+      Ws.push(code + ": Close start (3) '<b>' not found");
+      continue;
+    }
+    closeEnd = html.indexFrom("<", closeStartV! + 3);
+    if (closeEnd == -1 | closeEnd > trEndV!) {
+      Ws.push(code + ": Close end '<' not found");
+      continue;
+    }
+    closeS = html[closeStartV! + 3:closeEnd];
+    closeOp = math.fromIso(closeS);
+    if (!closeOp) arr.push(closeOp, -1.0);
+    close = closeOp! <= 0 ? -1.0 : closeOp!;
+
+    // OPEN
+
+    openStartV = [html.indexFrom("<td ", closeEnd)];
+    if (openStartV! == -1 | openStartV! > trEndV!) {
+      Ws.push(code + ": Open start (1) '<td ' not found");
+      continue;
+    }
+    openStartV! = html.indexFrom("<td ", openStartV! + 4);
+    if (openStartV! == -1 | openStartV! > trEndV!) {
+      Ws.push(code + ": Open start (2) '<td ' not found");
+      continue;
+    }
+    openStartV! = html.indexFrom("<td ", openStartV! + 4);
+    if (openStartV! == -1 | openStartV! > trEndV!) {
+      Ws.push(code + ": Open start (3) '<td ' not found");
+      continue;
+    }
+    openStartV! = html.indexFrom(">", openStartV! + 4);
+    if (openStartV! == -1 | openStartV! > trEndV!) {
+      Ws.push(code + ": Open start (4) '>' not found");
+      continue;
+    }
+    openEnd = html.indexFrom("<", openStartV!);
+    if (openEnd == -1 | openEnd > trEndV!) {
+      Ws.push(code + ": Open end '<' not found");
+      continue;
+    }
+    openS = html[openStartV! + 1:openEnd];
+    openOp = math.fromIso(openS);
+    if (!openOp) arr.push(openOp, -1.0);
+    open = openOp! <= 0 ? -1.0 : openOp!;
+
+    // MAXIMUM
+
+    maxStartV = [html.indexFrom("<font ", openEnd)];
+    if (maxStartV! == -1 | maxStartV! > trEndV!) {
+      Ws.push(code + ": Maximum start (1) '<font ' not found");
+      continue;
+    }
+    maxStartV! = html.indexFrom(">", maxStartV!);
+    if (maxStartV! == -1 | maxStartV! > trEndV!) {
+      Ws.push(code + ": Maximum start (2) '>' not found");
+      continue;
+    }
+    maxEnd = html.indexFrom("<", maxStartV!);
+    if (maxEnd == -1 | maxEnd > trEndV!) {
+      Ws.push(code + ": Maximum end '<' not found");
+      continue;
+    }
+    maxS = html[maxStartV! + 1:maxEnd];
+    maxOp = math.fromIso(maxS);
+    if (!maxOp) arr.push(maxOp, -1.0);
+    max = maxOp! <= 0 ? -1.0 : maxOp!;
+
+    // MINIMUM
+
+    minStartV = [html.indexFrom("<font ", maxEnd)];
+    if (minStartV! == -1 | minStartV! > trEndV!) {
+      Ws.push(code + ": Minimum start (1) '<font ' not found");
+      continue;
+    }
+    minStartV! = html.indexFrom(">", minStartV!);
+    if (minStartV! == -1 | minStartV! > trEndV!) {
+      Ws.push(code + ": Minimum start (2) '>' not found");
+      continue;
+    }
+    minEnd = html.indexFrom("<", minStartV!);
+    if (minEnd == -1 | minEnd > trEndV!) {
+      Ws.push(code + ": Minimum end '<' not found");
+      continue;
+    }
+    minS = html[minStartV! + 1:minEnd];
+    minOp = math.fromIso(minS);
+    if (!minOp) arr.push(minOp, -1.0);
+    min = minOp! <= 0 ? -1.0 : minOp!;
+
+    // VOLUME
+
+    volStartV = [html.indexFrom("<td ", minEnd)];
+    if (volStartV! == -1 | volStartV! > trEndV!) {
+      Ws.push(code + ": Volume start (1) '<td ' not found");
+      continue;
+    }
+    volStartV! = html.indexFrom("<td ", volStartV! + 4);
+    if (volStartV! == -1 | volStartV! > trEndV!) {
+      Ws.push(code + ": Volume start (2) '<td ' not found");
+      continue;
+    }
+    volStartV! = html.indexFrom(">", volStartV!);
+    if (volStartV! == -1 | volStartV! > trEndV!) {
+      Ws.push(code + ": Volume start (3) '>' not found");
+      continue;
+    }
+    volEnd = html.indexFrom("<", volStartV!);
+    if (volEnd == -1 | volEnd > trEndV!) {
+      Ws.push(code + ": Volume end '<' not found");
+      continue;
+    }
+    volS = html[volStartV! + 1:volEnd];
+    volOp = math.fromIso(volS);
+    if (!volOp) arr.push(volOp, -1.0);
+    vol = volOp! <= 0 ? -1.0 : volOp!;
+
+    Qs.push(dailyQ.mk(code, open, close, max, min, vol));
+  }
+
+  return [{Qs, Ws}, true];
+};

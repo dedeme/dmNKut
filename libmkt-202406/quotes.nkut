@@ -1,0 +1,123 @@
+// Copyright 25-Jun-2024 ºDeme
+// GNU General Public License - V3 <http://www.gnu.org/licenses/>
+
+/// Quotes table data
+
+import "cts";
+
+/// Constructor
+///   Cos   : Company nicks.
+///   Dates : Quotes dates in format YYYYMMDD, from before to after.
+///   Opens : Array of normalized open quotes (without -1).
+///           Its rows match 'dates' and its columns 'cos'.
+///   Closes: Array of normalized close quotes (without -1).
+///           Its rows match 'dates' and its columns 'cos'.
+///   Maxs  : Array of normalized maximum quotes (without -1).
+///           Its rows match 'dates' and its columns 'cos'.
+///   Mins  : Array of normalized minimum quotes (without -1).
+///           Its rows match 'dates' and its columns 'cos'.
+/// \[s.], [s.], [[n.].], [[n.].],
+///-                 [[n.].], [[n.].] -> <quotes>
+mk : Cos, Dates, Opens, Closes, Maxs, Mins;
+
+/// Returns the index of one company from its nick, or -1 if nick is not found.
+/// \<quotes> -> n
+companyIndex = \qs, nick ->
+  return arr.index(qs[Cos], \c -> return c == nick;);;
+
+/// Extracts data of the company with index 'coIx'.
+///   qs: All the quotes.
+///   coIx: Index in qs.Cos of the company to extract.
+/// \<quotes> -> <quotes>
+getSingle = \qs, coIx -> {
+  Dates = qs[Dates];
+  rows = arr.size(Dates);
+  AllOpens = qs[Opens];
+  AllCloses = qs[Closes];
+  AllMaxs = qs[Maxs];
+  AllMins = qs[Mins];
+
+  Opens1 = arr.mk(rows, 0);
+  Closes1 = arr.mk(rows, 0);
+  Maxs1 = arr.mk(rows, 0);
+  Mins1 = arr.mk(rows, 0);
+  for (r = 0:rows) {
+    Opens1[r] = [AllOpens[r][coIx]];
+    Closes1[r] = [AllCloses[r][coIx]];
+    Maxs1[r] = [AllMaxs[r][coIx]];
+    Mins1[r] = [AllMins[r][coIx]];
+  }
+  return mk([qs[Cos][coIx]], Dates, Opens1, Closes1, Maxs1, Mins1);
+};
+
+// Auxiliar function of 'read'.
+// \[s.], s, [s.] -> ()
+readDates = \:arr Dates, co, :arr Qs -> {
+  for (i = 0:Qs.size()) {
+    qdate = Qs[i][:8];
+    if (!math.isDigits(qdate))
+      throw str.fmt("'%v'. Bad date in %v", [qdate, co]);
+    Dates[i] = qdate;
+  }
+};
+
+/// Read quotes4 of serveral companies.
+///   dpath : Directory with files 'NICK'.tb.
+///   Cos   : Nicks of companies to read.
+/// \s, [s.] -> <quotes>
+read = \dpath, :arr Cos -> {
+  Dates = arr.mk(cts.historicQuotes, "");
+  Qts = []; // [[[n.].].] :: type x [days x cos]
+  for (i = 0:4) {
+    Days = [];
+    for (j = 0:cts.historicQuotes) Days.push(arr.mk(Cos.size(), 0.0));
+    Qts.push(Days);
+  }
+
+  for (ico = 0:Cos.size()) {
+    co = Cos[ico];
+    :file fpath = file.cat([dpath, co + ".tb"]);
+    :arr Qs = str.splitTrim(str.trim(fpath.read()), "\n");
+    if (Qs.size() != cts.historicQuotes)
+      throw str.fmt(
+        "Dates of %v(%v) are different from %v",
+        [co, Qs.size(), cts.historicQuotes]
+      );
+    Qs.reverseIn();
+
+    if (ico == 0) readDates(Dates, co, Qs);
+
+    for (idate = 0:cts.historicQuotes) {
+      :arr Es = str.splitTrim(Qs[idate], ":");
+      if (Es.size() != 7)
+        throw str.fmt(
+          "Quote %v of %v has not 7 fields.", [Qs[idate], co]
+        );
+
+      for (ie = 0:4) {
+        q = Es[ie + 1];
+        nOp = math.fromStr(q);
+        if (!nOp)
+          throw str.fmt(
+            "Bad quote %v in %v of %v.", [q, Qs[idate], co]
+          );
+        n = nOp!;
+
+        if (n < 0 & idate > 0) {
+          if (Qts[ie][idate - 1][ico] >= 0)
+            Qts[ie][idate][ico] = Qts[ie][idate - 1][ico];
+          else
+            Qts[ie][idate][ico] = -1;
+        } else {
+          if (idate > 0 & Qts[ie][idate - 1][ico] < 0) {
+            for (i = idate:0:-1)
+              Qts[ie][i][ico] = n;
+          } else {
+            Qts[ie][idate][ico] = n;
+          }
+        }
+      }
+    }
+  }
+  return mk(Cos, Dates, Qts[0], Qts[1], Qts[2], Qts[3]);
+};

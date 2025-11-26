@@ -1,0 +1,41 @@
+// Copyright 25-Jun-2024 ºDeme
+// GNU General Public License - V3 <http://www.gnu.org/licenses/>
+
+/// Order data.
+
+import "cts";
+
+/// Constructor.
+///   date  : Order date.
+///   nick  : Company nick.
+///   type  : cts.orderBuy or cts.orderSell.
+///   stocks: Stocks number.
+///   price : Price of each stock.
+/// \s, s, n, n, n -> <order>
+mk : date, nick, type, stocks, price;
+
+/// \[*.] -> <order>
+fromJs = \A -> return mk(
+    A[0],
+    A[1],
+    math.toInt(A[2]),
+    math.toInt(A[3]),
+    A[4]
+  );;
+
+/// Returns the number of orders type cts.orderBuy of 'Os'.
+/// \[<order>.] -> n
+buys = \Os -> {
+  sumV = [0];
+  for (O = Os) if (O[type] == cts.orderBuy) sumV! += 1;
+  return sumV!;
+};
+
+/// Returns the number of orders type cts.orderSell of 'Os'.
+/// \[<order>.] -> n
+sales = \Os -> {
+  sumV = [0];
+  for (O = Os) if (O[type] == cts.orderSell) sumV! += 1;
+  return sumV!;
+};
+

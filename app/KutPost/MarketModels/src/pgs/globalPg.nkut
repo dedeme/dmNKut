@@ -1,0 +1,37 @@
+// Copyright 02-Jul-2024 ºDeme
+// GNU General Public License - V3 <http://www.gnu.org/licenses/>
+
+/// Global rankings page.
+
+import "libmkt/models";
+import "libmkt/model";
+import "libmkt/cts" : mcts;
+import "data/simParams";
+import "data/imodel";
+import "data/ival";
+import "cts";
+import "db";
+
+/// \{*.} -> s
+process = \Rq -> {
+  switch (Rq.rq) {
+    "idata": {
+      type, stats : Rq;
+      return js.w({
+        "initialCapital": mcts.initialCapital,
+        "All": db.readRankRows(type, stats),
+        "Models": arr.map(models.list(), \:model md -> {
+            mdId = md.id;
+            bases = simParams.paramBases(mdId);
+            incrs = simParams.paramIncrs(mdId);
+            return imodel.mk(
+              mdId, md.name,
+              md.ParamNames, md.ParamTypes, bases, incrs
+            );
+          })
+      });
+    }
+    default: throw "Value of rq (" + Rq.rq + ") is not valid";
+  }
+};
+

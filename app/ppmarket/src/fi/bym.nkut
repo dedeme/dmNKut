@@ -1,0 +1,54 @@
+// Copyright 08-Sep-2025 ºDeme
+// GNU General Public License - V3 <http://www.gnu.org/licenses/>
+
+/// Reader of fixed income data.
+
+import "data/fi";
+import "readers/common";
+
+/// Returns data and IRR of and issuance data (Result<fi>).
+/// \s -> [(<fi>|s), b]
+read = async \code -> {
+  url = "https://www.bolsasymercados.es/bme-exchange/es/" +
+      "Mercados-y-Cotizaciones/Renta-Fija/Ficha-Emision/" +
+      code
+  ;
+  :str html  = await common.read(url, 2000);
+
+  ix1V = [html.index("Último Precio Negociado")];
+  if (ix1V! == -1)
+    return [code + ": Last price not found(1)", false];
+  ix1V! = html.indexFrom('"tile-item"', ix1V!);
+  if (ix1V! == -1)
+    return [code + ": Last price not found(2)", false];
+  ix1V! = html.indexFrom(">", ix1V!);
+  if (ix1V! == -1)
+    return [code + ": Last price not found(3)", false];
+  ix1V! += 1;
+  ix2V = [html.indexFrom("<", ix1V!)];
+  if (ix2V! == -1)
+    return [code + ": Last price close not found", false];
+  irrStr = str.trim(html[ix1V!:ix2V!]);
+  irrOp = math.fromIso(irrStr);
+  if (!irrOp)
+    return [code + ": Wrong last price data: " + irrStr, false];
+  irr = irrOp!;
+
+  ix1V! = html.indexFrom('"tile-item"', ix2V!);
+  if (ix1V! == -1)
+    return [code + ": Date not found(1)", false];
+  ix1V! = html.indexFrom(">", ix1V!);
+  if (ix1V! == -1)
+    return [code + ": Date not found(2)", false];
+  ix1V! += 1;
+  ix2V! = html.indexFrom("<", ix1V!);
+  if (ix2V! == -1)
+    return [code + ": Date close not found", false];
+  dateStr = str.trim(html[ix1V!:ix2V!]);
+  dateOp = time.fromIso(dateStr, "/");
+  if (!dateOp)
+    return ["Wrong date: " + dateStr, false];
+  date = time.toStr(dateOp!);
+
+  return [fi.mk(date, irr), true];
+};

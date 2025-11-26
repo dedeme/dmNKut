@@ -1,0 +1,18 @@
+// Copyright 05-Aug-2024 ºDeme
+// GNU General Public License - V3 <http://www.gnu.org/licenses/>
+
+/// Current file data.
+
+import "file/bym";
+import "file/pcb";
+import "file/bsmks";
+
+/// \{*.} -> {q: <fileQ>, Ws: [s.]}
+process = async \Rq -> {
+  switch (Rq.sv) {
+    "BYM": return await bym.read(Rq.code);
+    "PCB": return await pcb.read(Rq.code);
+    "BSMKS": return await bsmks.read(Rq.code);
+    default: throw "Server not found: " + Rq.sv;
+  }
+};

@@ -1,0 +1,79 @@
+// Copyright 04-Aug-2024 ºDeme
+// GNU General Public License - V3 <http://www.gnu.org/licenses/>
+
+/// File data test.
+
+import "test";
+
+/// \ -> ()
+ibex = \ -> {
+  R, ok = test.rq({
+    rq: "ixs",
+    sv: "IBEX"
+  });
+  if (!ok) {
+    sys.println(R);
+    return;
+  }
+
+  QsR, ok2 = js.r(R);
+  if (!ok2) {
+    sys.println(QsR);
+    return;
+  }
+
+  Qs, Ws : QsR;
+  sys.test(sys.type(Qs), "arr");
+  sys.test(sys.type(Ws), "arr");
+  for (w = Ws) sys.println(w);
+  for (q = Qs) sys.println(q);
+};
+
+/// \ -> ()
+ibexCos = \ -> {
+  R, ok = test.rq({
+    rq: "ixs",
+    sv: "IBEX_COS"
+  });
+  if (!ok) {
+    sys.println(R);
+    return;
+  }
+
+  CsR, ok2 = js.r(R);
+  if (!ok2) {
+    sys.println(CsR);
+    return;
+  }
+
+  sv, Cs, Ws : CsR;
+  sys.test(sys.type(Cs), "arr");
+  sys.test(sys.type(Ws), "arr");
+  sys.println(sv);
+  for (w = Ws) sys.println(w);
+  for (c = Cs) sys.println(c);
+};
+
+/// \ -> ()
+ixs = \ -> {
+  R, ok = test.rq({
+    rq: "ixs",
+    sv: "IXS"
+  });
+  if (!ok) {
+    sys.println(R);
+    return;
+  }
+
+  CsR, ok2 = js.r(R);
+  if (!ok2) {
+    sys.println(CsR);
+    return;
+  }
+
+  Ibex, Euro, Ws : CsR;
+  sys.test(sys.type(Ws), "arr");
+  for (w = Ws) sys.println(w);
+  sys.println(Ibex);
+  sys.println(Euro);
+};

@@ -1,0 +1,23 @@
+// Copyright 05-Aug-2024 ºDeme
+// GNU General Public License - V3 <http://www.gnu.org/licenses/>
+
+/// Historic data from common readings.
+
+do "import puppeteer from 'puppeteer'";
+puppet = eval "puppeteer";
+
+/// Reading delaying 'm' milliseconds.
+/// \s, n -> s
+read = async \url, m -> {
+  browser = await puppet.launch({headless: "new"});
+  page = await browser.newPage();
+  await page.goto(url, {waitUntil: 'domcontentloaded'});
+  await timer.delay(m, \-> {});
+
+  html = await page.content();
+
+  await browser.close();
+
+  return html;
+};
+

@@ -1,0 +1,34 @@
+// Copyright 25-Jun-2024 ºDeme
+// GNU General Public License - V3 <http://www.gnu.org/licenses/>
+
+/// Market model
+/// No serializable, althogh 'js.w' can be used directly.
+
+/// Type of parameters.
+/// [n.]
+dayParam, percParam =;
+
+/// Constructor.
+///   id           : Model identifier (short name in uppercase).
+///   name         : Model name.
+///   doc          : Documentation.
+///   ParamNames   : Parameter names.
+///   ParamTypes   : Parameter types. Each parameter can be:
+///                  model.dayParam or model.percParam.
+///   frefs        : Function to run with 'calc' (see. calc documentation).
+///                  'fcalc' params:
+///                    - Closes: Matrix 'dates x companies' with market closes.
+///                              This closes must be regularized (without -1.0 values).
+///                    - Params: Parameter values.
+///                    - RETURN: References.
+/// \s, s, s, [s.], [n.], (\[[n.].], [n.] -> [[n.].]) -> <model>
+mk : id, name, doc, ParamNames, ParamTypes, frefs;
+
+/// Returns references of a model. Rows are dates (from before to after) and
+/// columns companies.
+///   model : Model.
+///   Closes: Matrix 'dates x companies' with market closes.
+///           This closes must be regularized (without -1.0 values).
+///   Params: Parameter values.
+/// \<model>, [[n.].], [n.] -> [[n.].]
+refs = \m, Closes, Params -> return m[frefs](Closes, Params);;

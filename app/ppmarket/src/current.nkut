@@ -1,0 +1,16 @@
+// Copyright 06-Aug-2024 ºDeme
+// GNU General Public License - V3 <http://www.gnu.org/licenses/>
+
+/// Current 'ticks' data.
+
+import "current/bym";
+import "current/iberb";
+
+/// \{*.} -> [([<currentQ>.]|s), b]
+process = async \Rq -> {
+  switch (Rq.sv) {
+    "BYM": return await bym.read();
+    "IBERB": return await iberb.read();
+    default: throw "Server not found: " + Rq.sv;
+  }
+};

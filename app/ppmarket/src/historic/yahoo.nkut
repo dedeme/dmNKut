@@ -1,0 +1,237 @@
+// Copyright 05-Aug-2024 ºDeme
+// GNU General Public License - V3 <http://www.gnu.org/licenses/>
+
+/// Historic data from YAHOO.
+
+import "readers/historicYahoo";
+import "data/historicQ";
+
+// \s -> [s]
+readDate = \tx -> {
+  if (tx == "") return [];
+  month = switch (tx[0]) {
+    "J": tx[1] == "a"
+      ? "01"
+      : tx[2] == "n"
+        ? "06"
+        : "07"
+      ;
+    "F" : "02";
+    "M" : tx[2] == "r" ? "03" : "05";
+    "A" : tx[1] == "p" ? "04" : "08";
+    "S" : "09";
+    "O" : "10";
+    "N" : "11";
+    "D" : "12";
+    default : "";
+  };
+  if (month == "") return [];
+  dY = str.splitTrim(tx[3:], ",");
+  if (arr.size(dY) != 2) return [];
+
+  :str d, :str y = dY;
+  if (!math.isDigits(d) | (d.len() != 1 & d.len() != 2)) return [];
+  d2 = d.len() == 1 ? "0" + d : d;
+  if (!math.isDigits(y) | y.len() != 4) return [];
+
+  return [y + month + d2];
+};
+
+/// Returns Result<{Qs:historic, Ws:warnings}>
+/// Historic values are sorted from after to before.
+/// \s -> [({Qs: [<historicQ>.], Ws: [s.]}|s), b]
+read = async \code -> {
+  now = time.toStr(time.now());
+
+  url = "https://finance.yahoo.com/quote/" + code + "/history/";
+  :str html = await historicYahoo.read(url);
+
+  start = html.indexFrom("<tbody>", 0);
+  if (start == -1)
+    return ["Page start '<tbody>' not found", false];
+  end = html.indexFrom("</tbody>", start);
+  if (end == -1)
+    return ["Page end '</tbody>' not found", false];
+
+  Qs = []; // [<historicQ>.]
+  Ws = []; // [s.]
+  trEndV = [start];
+  while () {
+    trStart = html.indexFrom("<tr", trEndV!);
+    if (trStart == -1 | trStart > end) break;
+
+    trEndV! = html.indexFrom("</tr>", trStart);
+    if (trEndV! == -1 | trEndV! > end) {
+      Ws.push("End of row '</tr>' not found");
+      break;
+    }
+
+    // DATE
+
+    dateStartV = [html.indexFrom("<td", trStart)];
+    if (dateStartV! == -1 | dateStartV! > trEndV!) {
+      Ws.push("Date start (1) '<td' not found");
+      continue;
+    }
+    dateStartV! = html.indexFrom(">", dateStartV!);
+    if (dateStartV! == -1 | dateStartV! > trEndV!) {
+      Ws.push("Date start (2) '>' not found");
+      continue;
+    }
+    dateEnd = html.indexFrom('<', dateStartV!);
+    if (dateEnd == -1 | dateEnd > trEndV!) {
+      Ws.push("Date end '<' not found");
+      continue;
+    }
+    dateS = str.trim(html[dateStartV! + 1:dateEnd]);
+    dateOp = readDate(dateS);
+    if (!dateOp) {
+      Ws.push("Bad date '" + dateS + "'");
+      continue;
+    }
+    date = dateOp!;
+    if (date == now) continue; // skip current date.
+
+    // OPEN
+
+    openStartV = [html.indexFrom("<td", dateEnd)];
+    if (openStartV! == -1 | openStartV! > trEndV!) {
+      Ws.push("Open start (1) '<td' not found");
+      continue;
+    }
+    openStartV! = html.indexFrom(">", openStartV!);
+    if (openStartV! == -1 | openStartV! > trEndV!) {
+      Ws.push("Open start (2) '>' not found");
+      continue;
+    }
+    openEnd = html.indexFrom("<", openStartV!);
+    if (openEnd == -1 | openEnd > trEndV!) {
+      Ws.push("Open end '<' not found");
+      continue;
+    }
+    openS = html[openStartV! + 1:openEnd];
+
+    // Dividendo
+    if (str.trim(openS) == "" & html[openEnd:openEnd+5] == "<span") continue;
+
+    openOp = math.fromEn(openS);
+    if (!openOp) {
+      Ws.push("Bad open '" + openS + "'");
+      arr.push(openOp, -1.0);
+    }
+    open = openOp! <= 0 ? -1.0 : openOp!;
+
+    // MAXIMUM
+
+    maxStartV = [html.indexFrom("<td", openEnd)];
+    if (maxStartV! == -1 | maxStartV! > trEndV!) {
+      Ws.push("Maximum start (1) '<td' not found");
+      continue;
+    }
+    maxStartV! = html.indexFrom(">", maxStartV!);
+    if (maxStartV! == -1 | maxStartV! > trEndV!) {
+      Ws.push("Maximum start (2) '>' not found");
+      continue;
+    }
+    maxEnd = html.indexFrom("<", maxStartV!);
+    if (maxEnd == -1 | maxEnd > trEndV!) {
+      Ws.push("Maximum end '<' not found");
+      continue;
+    }
+    maxS = html[maxStartV! + 1:maxEnd];
+    maxOp = math.fromEn(maxS);
+    if (!maxOp) {
+      Ws.push("Bad maximum '" + maxS + "'");
+      arr.push(maxOp, -1.0);
+    }
+    max = maxOp! <= 0 ? -1.0 : maxOp!;
+
+    // MINIMUM
+
+    minStartV = [html.indexFrom("<td", maxEnd)];
+    if (minStartV! == -1 | minStartV! > trEndV!) {
+      Ws.push("Minimum start (1) '<td' not found");
+      continue;
+    }
+    minStartV! = html.indexFrom(">", minStartV!);
+    if (minStartV! == -1 | minStartV! > trEndV!) {
+      Ws.push("Minimum start (2) '>' not found");
+      continue;
+    }
+    minEnd = html.indexFrom("<", minStartV!);
+    if (minEnd == -1 | minEnd > trEndV!) {
+      Ws.push("Minimum end '<' not found");
+      continue;
+    }
+    minS = html[minStartV! + 1:minEnd];
+    minOp = math.fromEn(minS);
+    if (!minOp) {
+      Ws.push("Bad minimum '" + minS + "'");
+      arr.push(minOp, -1.0);
+    }
+    min = minOp! <= 0 ? -1.0 : minOp!;
+
+    // CLOSE
+
+    closeStartV = [html.indexFrom("<td", minEnd)];
+    if (closeStartV! == -1 | closeStartV! > trEndV!) {
+      Ws.push("Close start (1) '<td' not found");
+      continue;
+    }
+    closeStartV! = html.indexFrom(">", closeStartV!);
+    if (closeStartV! == -1 | closeStartV! > trEndV!) {
+      Ws.push("Close start (2) '>' not found");
+      continue;
+    }
+    closeEnd = html.indexFrom("<", closeStartV!);
+    if (closeEnd == -1 | closeEnd > trEndV!) {
+      Ws.push("Close end '<' not found");
+      continue;
+    }
+    closeS = html[closeStartV! + 1:closeEnd];
+    closeOp = math.fromEn(closeS);
+    if (!closeOp) {
+      Ws.push("Bad close '" + closeS + "'");
+      arr.push(closeOp, -1.0);
+    }
+    close = closeOp! <= 0 ? -1.0 : closeOp!;
+
+    // VOLUME
+
+    volStartV = [html.indexFrom("<td", closeEnd)];
+    if (volStartV! == -1 | volStartV! > trEndV!) {
+      Ws.push("Open start (1) '<td' not found");
+      continue;
+    }
+    volStartV! = html.indexFrom("<td", volStartV! + 1);
+    if (volStartV! == -1 | volStartV! > trEndV!) {
+      Ws.push("Open start (2) '<td' not found");
+      continue;
+    }
+    volStartV! = html.indexFrom(">", volStartV!);
+    if (volStartV! == -1 | volStartV! > trEndV!) {
+      Ws.push("Volume start (3) '>' not found");
+      continue;
+    }
+    volEnd = html.indexFrom("<", volStartV!);
+    if (volEnd == -1 | volEnd > trEndV!) {
+      Ws.push("Volume end '<' not found");
+      continue;
+    }
+    volS = html[volStartV! + 1:volEnd];
+    volOp = math.fromEn(volS);
+    if (!volOp) {
+      if (volS != "-") {
+        Ws.push("Bad volume '" + volS + "'");
+        arr.push(volOp, -1.0);
+      } else {
+        arr.push(volOp, 0.0);
+      }
+    }
+    vol = volOp! <= 0.0 ? -1.0 : volOp!;
+
+    Qs.push(historicQ.mk(date, open, close, max, min, vol));
+  }
+
+  return [{Qs, Ws}, true];
+};

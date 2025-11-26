@@ -1,0 +1,78 @@
+// Copyright 05-Aug-2024 ºDeme
+// GNU General Public License - V3 <http://www.gnu.org/licenses/>
+
+/// Daily file data from BSMKS.
+
+import "readers/common";
+import "data/fileQ";
+
+/// \s -> {q: <fileQ>, Ws: [s.]}
+read = async \code -> {
+  url = "https://www.bsmarkets.com/cs/Satellite?" +
+    "cid=1191411509498&pagename=BSMarkets2%2FPage%2" +
+    "FPage_Interna_WFG_Template&seccion=ficha_valor&" +
+    "plaza=55&isin=ES0105287009&codFininfo=104917265&" +
+    "nemo=" + code + "&nombre=Mercado%20Continuo&id_indice=mc"
+  ;
+  :str html = await common.read(url, 2000);
+
+  /// \n, s -> [([n, n]|s), b]
+  readValue = \ix, label -> {
+    ix10 = html.indexFrom(label, ix);
+    if (ix10 == -1) return(["Label '" + label + "' not found", false]);
+    ix1 = ix10 + str.len(label);
+
+    ix2 = html.indexFrom("<", ix1);
+    if (ix2 == -1) return (["End field '" + label + "' not found", false]);
+
+    qOp = math.fromIso(html[ix1:ix2]);
+    if (!qOp) return (["Bad number in '" + label + "'", false]);
+
+    return [[ix2 + 1, qOp!], true];
+  };
+
+  Ws = [];
+
+  closeV = [-1];
+  ixV = [0];
+  IxClose, ok = readValue(ixV!, '"precio_ultima_cotizacion">');
+  if (!ok) Ws.push(IxClose);
+  else {
+    ixV! = IxClose[0];
+    closeV! = IxClose[1];
+  }
+
+  openV = [-1];
+  IxOpen, ok1 = readValue(ixV!, "<strong>");
+  if (!ok1) Ws.push(IxOpen);
+  else {
+    ixV! = IxOpen[0];
+    openV! = IxOpen[1];
+  }
+
+  maxV = [-1];
+  IxMax, ok2 = readValue(ixV!, '"maximo">');
+  if (!ok2) Ws.push(IxMax);
+  else {
+    ixV! = IxMax[0];
+    maxV! = IxMax[1];
+  }
+
+  volV = [-1];
+  IxVol, ok4 = readValue(ixV!, '"volumen">');
+  if (!ok4) Ws.push(IxVol);
+  else {
+    ixV! = IxVol[0];
+    volV! = IxVol[1];
+  }
+
+  minV = [-1];
+  IxMin, ok3 = readValue(ixV!, '"minimo">');
+  if (!ok3) Ws.push(IxMin);
+  else {
+    ixV! = IxMin[0];
+    minV! =IxMin[1];
+  }
+
+  return {q: fileQ.mk(openV!, closeV!, maxV!, minV!, volV!) , Ws};
+};

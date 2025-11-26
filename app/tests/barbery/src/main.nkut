@@ -1,0 +1,18 @@
+// Copyright 23-Jun-2024 ºDeme
+// GNU General Public License - V3 <http://www.gnu.org/licenses/>
+
+import "clock";
+import "barber";
+import "client";
+
+clockEndV = thread.run(clock.run);
+clientMakerEndV = thread.run(client.makerRun);
+barberEndV = thread.run(barber.run);
+
+thread.run(\endV, :timer tm -> {
+    if (clockEndV! & clientMakerEndV! & barberEndV!) {
+      sys.println("Program end.");
+      tm.stop();
+      endV! = true;
+    }
+  });

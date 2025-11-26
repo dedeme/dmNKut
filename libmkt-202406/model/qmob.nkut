@@ -1,0 +1,63 @@
+// Copyright 25-Jun-2024 ºDeme
+// GNU General Public License - V3 <http://www.gnu.org/licenses/>
+
+/// Model Mobil Quantum.
+
+import "../model";
+import "doc/qmobDoc";
+
+/// Returns a new 'appr2' model.
+/// \ -> <model>
+mk = \ -> return model.mk(
+    "QMOV",
+    "Quantum móvil",
+    qmobDoc.text,
+    ["Salto"],
+    [model.percParam],
+    refs
+  );;
+
+// \[[n.].], [n.] -> [[n.].]
+refs = \:arr Closes, :arr Params -> {
+  gap = Params[0];
+  upGap = 1 + gap;
+  downGap = 1 - gap;
+  :arr Cls0 = Closes[0];
+  ndates = Closes.size();
+  ncos = Cls0.size();
+
+  AllRefs = []; // [[n.].]
+  IsSolds = arr.mk(ncos, false);
+  Refs = []; // [n.]
+  for (cl = Cls0) Refs.push(cl * downGap);
+
+  AllRefs.push(Refs.copy());
+  for (idate = 1:ndates) {
+    ClosesR = Closes[idate];
+
+    for (ico = 0:ncos) {
+      c = ClosesR[ico];
+      rf = Refs[ico];
+
+      if (IsSolds[ico]) {
+        if (c > rf) {
+          IsSolds[ico] = false;
+          Refs[ico] = c * downGap;
+        } else {
+          newRf = c * upGap;
+          Refs[ico] = newRf > rf ? rf : newRf;
+        }
+      } else {
+       if (c < rf) {
+          IsSolds[ico] = true;
+          Refs[ico] = c * upGap;
+        } else {
+          newRf = c * downGap;
+          Refs[ico] = newRf < rf ? rf : newRf;
+        }
+      }
+    }
+    AllRefs.push(Refs.copy());
+  }
+  return AllRefs;
+};

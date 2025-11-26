@@ -1,0 +1,95 @@
+// Copyright 06-Oct-2024 ºDeme
+// GNU General Public License - V3 <http://www.gnu.org/licenses/>
+
+/// Supports - Resitence model.
+
+import "../model";
+import "doc/sprsDoc";
+
+/// Returns a new 'sprs' model.
+/// \ -> <model>
+mk = \ -> return model.mk(
+    "SPRS",
+    "Soporte - Resistencia",
+    sprsDoc.text,
+    ["Incremento"],
+    [model.percParam],
+    refs
+  );;
+
+// \[[n.].], [n.] -> [[n.].]
+refs = \:arr Closes, :arr Params -> {
+  delta = Params[0];
+  upDelta = 1.0 + delta;
+  downDelta = 1.0 - delta;
+  :arr Cls0 = Closes[0];
+  ndates = Closes.size();
+  ncos = Cls0.size();
+
+  AllRefs = []; // [[n.].]
+  Maxs = arr.mk(ncos, 0.0);
+  :arr Mins = arr.mk(ncos, 0.0);
+  Tmps = arr.mk(ncos, -1.0);
+  IsSolds = arr.mk(ncos, false);
+  for (i, c = Cls0) {
+    c2 = c * downDelta;
+    Maxs[i] = c;
+    Mins[i] = c2;
+  }
+
+  AllRefs.push(Mins.copy());
+  for (idate = 1:ndates) {
+    ClosesR = Closes[idate];
+    Refs = arr.mk(ncos, 0.0);
+
+    for (ico = 0:ncos) {
+      c = ClosesR[ico];
+
+      if (!IsSolds[ico]) {
+        if (c < Mins[ico]) {
+          IsSolds[ico] = true;
+          Mins[ico] = c;
+          Tmps[ico] = -1.0;
+          Refs[ico] = Maxs[ico];
+        } else {
+          if (c > Maxs[ico]) {
+            Maxs[ico] = c;
+            if (Tmps[ico] >= 0.0) {
+              Mins[ico] = Tmps[ico];
+              Tmps[ico] = -1.0;
+            }
+          } else if (
+            (Tmps[ico] < 0.0 & c < Maxs[ico] * downDelta) |
+            c < Tmps[ico]
+          ) {
+            Tmps[ico] = c;
+          }
+          Refs[ico] = Mins[ico];
+        }
+      } else {
+        if (c > Maxs[ico]) {
+          IsSolds[ico] = false;
+          Maxs[ico] = c;
+          Tmps[ico] = -1.0;
+          Refs[ico] = Mins[ico];
+        } else {
+          if (c < Mins[ico]) {
+            Mins[ico] = c;
+            if (Tmps[ico] >= 0.0) {
+              Maxs[ico] = Tmps[ico];
+              Tmps[ico] = -1.0;
+            }
+          } else if (
+            (Tmps[ico] < 0.0 & c > Mins[ico] * upDelta) |
+            (Tmps[ico] >= 0.0 & c > Tmps[ico])
+          ) {
+            Tmps[ico] = c;
+          }
+          Refs[ico] = Maxs[ico];
+        }
+      }
+    }
+    AllRefs.push(Refs);
+  }
+  return AllRefs;
+};

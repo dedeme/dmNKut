@@ -1,0 +1,33 @@
+// Copyright 20-Mar-2024 ºDeme
+// GNU General Public License - V3 <http://www.gnu.org/licenses/>
+
+/// Test references.
+
+import "libmkt/models";
+import "libmkt/model";
+import "libmkt/quotes";
+import "extDb/quotesDb";
+import "data/simParams";
+
+/// Returns
+///   {}
+/// \{*.} -> {*.}
+run = \Rq -> {
+  , nf : Rq;
+  :quotes qts = quotesDb.read();
+  Cls = qts.Closes;
+  :arr List = models.list();
+  List.sort(\:model m1, :model m2 -> return m1.id < m2.id;);
+  //return m1.id.localeCompare(m2.id) < 0;);
+
+  :file f = file.wopen(nf);
+  for (:model md = List) {
+    mdId = md.id;
+    Params = simParams.paramBases(mdId);
+    rfs = js.w(md.refs(Cls, Params));
+    f.writeText(mdId + ":" + rfs + "\n");
+  }
+  f.close();
+
+  return {};
+};

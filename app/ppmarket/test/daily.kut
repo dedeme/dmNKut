@@ -1,0 +1,85 @@
+// Copyright 04-Aug-2024 ºDeme
+// GNU General Public License - V3 <http://www.gnu.org/licenses/>
+
+/// File data test.
+
+import "test";
+
+/// \ -> ()
+bym = \ -> {
+  R, ok = test.rq({
+    rq: "daily",
+    sv: "BYM"
+  });
+  if (!ok) {
+    sys.println(R);
+    return;
+  }
+
+  QsR, ok2 = js.r(R);
+  if (!ok2) {
+    sys.println(QsR);
+    return;
+  }
+
+  //return QsR;
+
+  Qs, Ws : QsR;
+  sys.test(sys.type(Qs), "arr");
+  sys.test(sys.type(Ws), "arr");
+  for (w = Ws) sys.println(w);
+  for (q = Qs) sys.println(q);
+};
+
+/// \ -> ()
+iberb = \ -> {
+  R, ok = test.rq({
+    rq: "daily",
+    sv: "IBERB"
+  });
+  if (!ok) {
+    sys.println(R);
+    return;
+  }
+
+  QsR, ok2 = js.r(R);
+  if (!ok2) {
+    sys.println(QsR);
+    return;
+  }
+
+  //return QsR;
+
+  Qs, Ws : QsR;
+  sys.test(sys.type(Qs), "arr");
+  sys.test(sys.type(Ws), "arr");
+  for (w = Ws) sys.println(w);
+  for (q = Qs) sys.println(q);
+};
+
+/// \ -> ()
+pcb = \ -> {
+  R, ok = test.rq({
+    rq: "daily",
+    sv: "PCB"
+  });
+  if (!ok) {
+    sys.println(R);
+    return;
+  }
+
+  QsR, ok2 = js.r(R);
+  if (!ok2) {
+    sys.println(QsR);
+    return;
+  }
+
+  //return QsR;
+
+  Qs, Ws : QsR;
+  sys.test(sys.type(Qs), "arr");
+  sys.test(sys.type(Ws), "arr");
+  for (w = Ws) sys.println(w);
+  for (q = Qs) sys.println(q);
+};
+

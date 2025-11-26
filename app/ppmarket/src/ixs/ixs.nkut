@@ -1,0 +1,101 @@
+// Copyright 06-Aug-2024 ºDeme
+// GNU General Public License - V3 <http://www.gnu.org/licenses/>
+
+/// Ibex and Eurostoxx [current tick, current open].
+
+import "readers/common";
+
+/// Returns Result<{Ibex:[tick, open], Euro:[tick, open], Ws:warnings}>
+/// \ -> [({Ibex: [n, n], Euro: [n, n], Ws: [s.]}|s), b]
+read = async \ -> {
+
+  Ws =[];
+
+  Ibex = [-1, -1];
+  while () {
+    url = "https://www.eleconomista.es/indice/IBEX-35";
+    :str html = await common.read(url, 2000);
+    ix = html.index('"price":"');
+    if (ix == -1) {
+      Ws.push("Field price not found");
+      break;
+    }
+    start = ix + 9;
+    ix2 = html.indexFrom('"', start);
+    if (ix2 == -1) {
+      Ws.push("Field price ending not found");
+      break;
+    }
+    vOp = math.fromStr(html[start:ix2]);
+    if (!vOp) {
+      Ws.push("Index value is wrong number (" + html[start:ix2] + ")");
+      break;
+    }
+    Ibex[0] = vOp!;
+
+    ixp = html.index('"priceChange":"');
+    if (ixp == -1) {
+      Ws.push("Field priceChange not found");
+      break;
+    }
+    startp = ixp + 15;
+    ixp2 = html.indexFrom('"', startp);
+    if (ixp2 == -1) {
+      Ws.push("Field priceChange ending not found");
+      break;
+    }
+    vpOp = math.fromStr(html[startp:ixp2]);
+    if (!vpOp) {
+      Ws.push("Index increment is wrong number (" + html[startp:ixp2] + ")");
+      break;
+    }
+    Ibex[1] = vOp! - vpOp!;
+
+    break;
+  }
+
+  Euro = [-1, -1];
+  while () {
+    url = "https://www.eleconomista.es/indice/EUROSTOXX-50";
+    :str html = await common.read(url, 2000);
+    ix = html.index('"price":"');
+    if (ix == -1) {
+      Ws.push("Field price not found");
+      break;
+    }
+    start = ix + 9;
+    ix2 = html.indexFrom('"', start);
+    if (ix2 == -1) {
+      Ws.push("Field price ending not found");
+      break;
+    }
+    vOp = math.fromStr(html[start:ix2]);
+    if (!vOp) {
+      Ws.push("Index value is wrong number (" + html[start:ix2] + ")");
+      break;
+    }
+    Euro[0] = vOp!;
+
+    ixp = html.index('"priceChange":"');
+    if (ixp == -1) {
+      Ws.push("Field priceChange not found");
+      break;
+    }
+    startp = ixp + 15;
+    ixp2 = html.indexFrom('"', startp);
+    if (ixp2 == -1) {
+      Ws.push("Field priceChange ending not found");
+      break;
+    }
+    vpOp = math.fromStr(html[startp:ixp2]);
+    if (!vpOp) {
+      Ws.push("Index increment is wrong number (" + html[startp:ixp2] + ")");
+      break;
+    }
+    Euro[1] = vOp! - vpOp!;
+
+    break;
+  }
+
+  return [{Ibex, Euro, Ws}, true];
+};

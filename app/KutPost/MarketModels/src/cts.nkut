@@ -1,0 +1,56 @@
+// Copyright 25-Jun-2024 ºDeme
+// GNU General Public License - V3 <http://www.gnu.org/licenses/>
+
+/// Constants.
+
+/// Application name.
+/// s
+appName = "MarketModelsN";
+/// Application version.
+/// s
+version = "202406";
+/// Data version.
+/// s
+dataVersion = "2024.03";
+/// Data path.
+/// s
+dataPath = file.cat([sys.home(), ".dmNkutApp", "KutPost", appName]);
+/// Results directory.
+/// s
+resultsDir = file.cat([dataPath, "results"]);
+/// Ranks directory.
+/// s
+ranksDir = file.cat([dataPath, "ranks"]);
+/// Directory of historic quotes tables type 'NICK.tb'.
+/// s
+quotesPath = "/dm/KtWeb/dmcgi/Market/quotes";
+/// Steps number to calculate simulations
+/// n
+simulationSteps = 20;
+/// Minimum sales to compute results.
+/// n
+minSales = 40;
+
+// -----------------------------------------------------------------------------
+
+/// Number of global ranks.
+/// n
+globalRanks = 5;
+/// Number of dates to calculate statistics.
+/// n
+statDates = 24;
+/// Number of dates to save.
+/// n
+historicDates = (statDates + 1) * 2;
+/// Period names.
+/// [s.]
+Periods = ["daily", "weekly", "monthly"];
+/// Values types.
+/// [s.]
+Types = ["prices", "accs", "refs"];
+/// Statistics names.
+/// [s.]
+Stats = ["price", "average", "crrAverage", "deviation"];
+/// Investor model base.
+/// s
+modelBase = "SSBB0";

@@ -1,0 +1,118 @@
+// Copyright 25-Jun-2024 ºDeme
+// GNU General Public License - V3 <http://www.gnu.org/licenses/>
+
+/// Mix 'uudd0 - qfix'  model.
+
+import "../model";
+import "doc/uuqfDoc";
+
+/// Returns a new 'uufq' model.
+/// \ -> <model>
+mk = \ -> return model.mk(
+    "SSQF",
+    "Mix SSBB0 - QFIX",
+    uuqfDoc.text,
+    ["Inicio", "Cut"],
+    [model.percParam, model.percParam],
+    refs
+  );;
+
+// \[[n.].], [n.] -> [[n.].]
+refs = \:arr Closes, :arr Params -> {
+  start = Params[0];
+  upStart = 1 + start;
+  downStart = 1 - start;
+  gap = Params[0] * Params[1];
+  upGap = 1.0 + gap;
+
+  :arr Cls0 = Closes[0];
+  ndates = Closes.size();
+  ncos = Cls0.size();
+
+  AllRefs = []; // [[n.].]
+  IsSolds = arr.mk(ncos, false);
+
+  RefUs = []; // [n.]
+  RefQs = []; // [n.]
+  TopQs = []; // [n.]
+  for (cl = Cls0) {
+    RefUs.push(cl * downStart);
+    RefQs.push(cl / upGap);
+    TopQs.push(cl * (1.0 + upGap) / 2.0);
+  }
+
+  AllRefs.push(RefQs.copy());
+  for (idate = 1:ndates) {
+    ClosesR = Closes[idate];
+    PrvCloses = Closes[idate - 1];
+    Refs = arr.mk(ncos, 0.0);
+
+    for (ico = 0:ncos) {
+      c = ClosesR[ico];
+      prvC = PrvCloses[ico];
+      rfU = RefUs[ico];
+      rfQ = RefQs[ico];
+      topQ = TopQs[ico];
+
+      if (IsSolds[ico]) {
+        dif = c - prvC;
+        rfU0 = rfU * (prvC + dif) / prvC;
+        rfU2 = rfU < rfU0 ? rfU : rfU0;
+        if (c > rfU2 | c > rfQ) {
+          IsSolds[ico] = false;
+          RefUs[ico] = c * downStart;
+          rQ = c / upGap;
+          RefQs[ico] = rQ;
+          TopQs[ico] = c * (1.0 + upGap) / 2.0;
+          Refs[ico] = rQ;
+        } else {
+          RefUs[ico] = rfU2;
+
+          rfQV = [rfQ];
+          topQV = [topQ];
+          while (c < topQV!) {
+            r0 = rfQV! / upGap;
+            rfQV! = r0;
+            r = r0 / upGap;
+            topQV! = (r + r / upGap) / 2.0;
+          }
+          newRfQ = rfQV!;
+          RefQs[ico] = newRfQ;
+          TopQs[ico] = topQV!;
+
+          Refs[ico] = rfU2 < newRfQ ? rfU2 : newRfQ;
+        }
+      } else {
+        dif = c - prvC;
+        rfU0 = rfU * (prvC + dif) / prvC;
+        rfU2 = rfU > rfU0 ? rfU : rfU0;
+        if (c < rfU2 | c < rfQ) {
+          IsSolds[ico] = true;
+          RefUs[ico] = c * upStart;
+          rQ = c * upGap;
+          RefQs[ico] = rQ;
+          TopQs[ico] = (c + c / upGap) / 2.0;
+          Refs[ico] = rQ;
+        } else {
+          RefUs[ico] = rfU2;
+
+          rfQV = [rfQ];
+          topQV = [topQ];
+          while (c > topQV!) {
+            r0 = rfQV! * upGap;
+            rfQV! = r0;
+            r = r0 * upGap;
+            topQV! = r * (1.0 + upGap) / 2.0;
+          }
+          newRfQ = rfQV!;
+          RefQs[ico] = newRfQ;
+          TopQs[ico] = topQV!;
+
+          Refs[ico] = rfU2 > newRfQ ? rfU2 : newRfQ;
+        }
+      }
+    }
+    AllRefs.push(Refs);
+  }
+  return AllRefs;
+};

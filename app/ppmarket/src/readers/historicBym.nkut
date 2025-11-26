@@ -1,0 +1,29 @@
+// Copyright 04-Aug-2024 ºDeme
+// GNU General Public License - V3 <http://www.gnu.org/licenses/>
+
+/// Historic data from BYM.
+
+do "import puppeteer from 'puppeteer'";
+puppet = eval "puppeteer";
+
+/// \s -> s
+read = async \url -> {
+  browser = await puppet.launch({headless: "new"});
+  page = await browser.newPage();
+  await page.goto(url);
+
+  await page.waitForNetworkIdle();
+  b = eval "await page.$('button ::-p-text(Aceptar todas las cookies)')";
+  await b.click();
+  await page.waitForNetworkIdle();
+
+  e = eval "await page.$('a ::-p-text(Información Histórica)')";
+  await e.click();
+  await page.waitForNetworkIdle();
+  html = await page.content();
+
+  await browser.close();
+
+  return html;
+};
+

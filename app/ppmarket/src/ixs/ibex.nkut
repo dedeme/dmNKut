@@ -1,0 +1,190 @@
+// Copyright 06-Aug-2024 ºDeme
+// GNU General Public License - V3 <http://www.gnu.org/licenses/>
+
+/// Ibex historic.
+
+import "readers/common";
+import "data/historicQ";
+
+//: [s.]
+months = [
+  "ene", "feb", "mar", "abr", "may", "jun",
+  "jul", "ago", "sep", "oct", "nov", "dic"
+];
+
+//: \s -> s
+readDate = \:str html -> {
+  :arr ps = html.split("-");
+  if (ps.size() != 3) return "";
+  mp = ps[1];
+  mn = months.index(\m -> return m == mp;) + 1;
+  ms = mn < 10 ? "0" + math.toStr(mn) : math.toStr(mn);
+
+  return "20" + ps[2] + ms + ps[0];
+};
+
+/// Returns Result<{Qs:quotes, Ws:warnings}>
+/// \ -> [({Qs: [<historicQ>.], Ws: [s.]}|s), b]
+read = async \ -> {
+  now = time.toStr(time.now());
+
+  url = "https://www.bolsamania.com/indice/IBEX-35/historico-precios";
+  :str html = await common.read(url, 2000);
+
+  start = html.indexFrom("</thead> <tbody>", 0);
+  if (start == -1)
+    return ["Page start '</thead> <tbody>' not found", false];
+  end = html.indexFrom("</tbody>", start);
+  if (end == -1)
+    return ["Page end '</tbody>' not found", false];
+
+  Qs = []; // [<currentQ>.]
+  Ws = []; // [s.]
+  trEndV = [start];
+  while () {
+    trStart = html.indexFrom("<tr", trEndV!);
+    if (trStart == -1 | trStart > end) break;
+
+    trEndV! = html.indexFrom("</tr>", trStart);
+    if (trEndV! == -1 | trEndV! > end) {
+      Ws.push("End of row '</tr>' not found");
+      break;
+    }
+
+    // DATE
+
+    dateStartV = [html.indexFrom("<td ", trStart)];
+    if (dateStartV! == -1 | dateStartV! > trEndV!) {
+      Ws.push("Date start (1) '<td ' not found");
+      continue;
+    }
+    dateStartV! = html.indexFrom(">", dateStartV!);
+    if (dateStartV! == -1 | dateStartV! > trEndV!) {
+      Ws.push("Date start (2) '>' not found");
+      continue;
+    }
+    dateEnd = html.indexFrom('<', dateStartV!);
+    if (dateEnd == -1 | dateEnd > trEndV!) {
+      Ws.push("Date end '\"' not found");
+      continue;
+    }
+    dateS = html[dateStartV! + 1:dateEnd];
+    dateOp = time.fromStr(readDate(dateS));
+    if (!dateOp) {
+      Ws.push("Bad date '" + dateS + "'");
+      continue;
+    }
+    date = time.toStr(dateOp!);
+    if (date == now) continue; // skip current date.
+
+    // CLOSE
+
+    closeStartV = [html.indexFrom("<td ", dateEnd)];
+    if (closeStartV! == -1 | closeStartV! > trEndV!) {
+      Ws.push("Close start (1) '<td ' not found");
+      continue;
+    }
+    closeStartV! = html.indexFrom(">", closeStartV!);
+    if (closeStartV! == -1 | closeStartV! > trEndV!) {
+      Ws.push("Close start (2) '>' not found");
+      continue;
+    }
+    closeEnd = html.indexFrom("<", closeStartV!);
+    if (closeEnd == -1 | closeEnd > trEndV!) {
+      Ws.push("Close end '<' not found");
+      continue;
+    }
+    closeS = html[closeStartV! + 1:closeEnd];
+    closeOp = math.fromIso(closeS);
+    if (!closeOp) {
+      Ws.push("Bad close '" + closeS + "'");
+      arr.push(closeOp, -1.0);
+    }
+    close = closeOp! <= 0 ? -1.0 : closeOp!;
+
+    // MAXIMUM
+
+    maxStartV = [html.indexFrom("<td ", closeEnd)];
+    if (maxStartV! == -1 | maxStartV! > trEndV!) {
+      Ws.push("Maximum start (1) '<td ' not found");
+      continue;
+    }
+    maxStartV! = html.indexFrom("<td ", maxStartV! + 4);
+    if (maxStartV! == -1 | maxStartV! > trEndV!) {
+      Ws.push("Maximum start (2) '<td ' not found");
+      continue;
+    }
+    maxStartV! = html.indexFrom(">", maxStartV!);
+    if (maxStartV! == -1 | maxStartV! > trEndV!) {
+      Ws.push("Maximum start (3) '>' not found");
+      continue;
+    }
+    maxEnd = html.indexFrom("<", maxStartV!);
+    if (maxEnd == -1 | maxEnd > trEndV!) {
+      Ws.push("Maximum end '<' not found");
+      continue;
+    }
+    maxS = html[maxStartV! + 1:maxEnd];
+    maxOp = math.fromIso(maxS);
+    if (!maxOp) {
+      Ws.push("Bad maximum '" + maxS + "'");
+      arr.push(maxOp, -1.0);
+    }
+    max = maxOp! <= 0 ? -1.0 : maxOp!;
+
+    // MINIMUM
+
+    minStartV = [html.indexFrom("<td ", maxEnd)];
+    if (minStartV! == -1 | minStartV! > trEndV!) {
+      Ws.push("Minimum start (1) '<td ' not found");
+      continue;
+    }
+    minStartV! = html.indexFrom(">", minStartV!);
+    if (minStartV! == -1 | minStartV! > trEndV!) {
+      Ws.push("Minimum start (2) '>' not found");
+      continue;
+    }
+    minEnd = html.indexFrom("<", minStartV!);
+    if (minEnd == -1 | minEnd > trEndV!) {
+      Ws.push("Minimum end '<' not found");
+      continue;
+    }
+    minS = html[minStartV! + 1:minEnd];
+    minOp = math.fromIso(minS);
+    if (!minOp) {
+      Ws.push("Bad minimum '" + minS + "'");
+      arr.push(minOp, -1.0);
+    }
+    min = minOp! <= 0 ? -1.0 : minOp!;
+
+    // OPEN
+
+    openStartV = [html.indexFrom("<td ", minEnd)];
+    if (openStartV! == -1 | openStartV! > trEndV!) {
+      Ws.push("Volume start (1) '<td ' not found");
+      continue;
+    }
+    openStartV! = html.indexFrom(">", openStartV!);
+    if (openStartV! == -1 | openStartV! > trEndV!) {
+      Ws.push("Volume start (2) '>' not found");
+      continue;
+    }
+    openEnd = html.indexFrom("<", openStartV!);
+    if (openEnd == -1 | openEnd > trEndV!) {
+      Ws.push("Volume end '<' not found");
+      continue;
+    }
+    openS = html[openStartV! + 1:openEnd];
+    openOp = math.fromIso(openS);
+    if (!openOp) {
+      Ws.push("Bad volume '" + openS + "'");
+      arr.push(openOp, -1.0);
+    }
+    open = openOp! <= 0 ? -1.0 : openOp!;
+
+    Qs.push(historicQ.mk(date, open, close, max, min, 0));
+  }
+
+  Qs.reverseIn();
+  return [{Qs, Ws}, true];
+};

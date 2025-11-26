@@ -1,0 +1,63 @@
+// Copyright 23-Jun-2024 ºDeme
+// GNU General Public License - V3 <http://www.gnu.org/licenses/>
+
+import "shop";
+import "clock";
+import "cts";
+
+bbTmV = [-1];
+bbDelayV = [0];
+sleepingV = [false];
+
+// \s -> ()
+cutHair = \cl -> {
+  sys.println(str.fmt("Barber: Cutting hair to %v", [cl]));
+  sys.println(str.fmt("Shop: %v", [shop.showSits()]));
+};
+
+/// \[b], <timer> -> ()
+run = \endV, :timer tm -> {
+  if (!shop.isOpenV! & shop.isPreopenV!) {
+    if (bbTmV! < 0) {
+      sys.println("Barber: Go out from home");
+      bbTmV! = time.now();
+      return;
+    }
+    if (thread.sleep(bbTmV, 1000)) return;
+    sys.println("Barber: Open barbery");
+    shop.open();
+  }
+
+  if (thread.sleep(bbTmV, bbDelayV!)) return;
+
+  if (!endV!) {
+    clV = [""];
+    if (clock.timeOverV! & shop.isOpenV!) {
+      sys.println("Barber: Close barbery");
+      shop.close();
+    }
+
+    if (shop.isEmpty()) {
+      if (!shop.isOpenV!) endV! = true;
+      else if (!sleepingV!) {
+        sleepingV! = true;
+        sys.println("Barber: Barber is sleeping");
+      }
+    } else {
+      sleepingV! = false;
+      clV! = shop.takeAClient();
+    }
+
+    if (clV! != "") {
+      cutHair(clV!);
+      bbDelayV! = cts.barberTime;
+    } else if (!endV!) {
+      bbDelayV! = 10;
+    }
+    return;
+  }
+
+  tm.stop();
+  endV! = true;
+};
+

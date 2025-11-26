@@ -1,0 +1,87 @@
+// Copyright 08-Sep-2025 ºDeme
+// GNU General Public License - V3 <http://www.gnu.org/licenses/>
+
+/// Reader of auctions of 'Letras del Tesoro".
+
+import "readers/common";
+
+/// Returns Result<{Auctions: [[s,s,s].], Ws: [s.]}>
+///   Each element of Auctions array are dates in format YYYYMMDD of:
+///     [auction, issuance, expiration]
+///   Each element of Ws is a warning.
+/// \-> [({Auctions: [[s,s,s].], Ws: [s.]}|s), b]
+read = async \ -> {
+  url = "https://www.tesoro.es/deuda-publica/subastas/calendario";
+  :str html  = await common.read(url, 2000);
+
+  ix1V = [html.index("Letras a 12 meses")];
+  if (ix1V! == -1)
+    return ["Timetable of FI Auctions not found", false];
+
+  end = html.indexFrom("</div>", ix1V!);
+  if (end == -1)
+    return ["Timetable close of FI Auctions not found", false];
+
+  Auctions = []; // [[s,s,s].]
+  Ws = []; // [s.]
+  ix2V = [-1];
+  while () {
+    ix1V! = html.indexFrom("Letras a 12 meses", ix1V!);
+    if (ix1V! == -1 | ix1V! > end)
+     break;
+
+    ix1Plus = ix1V! + 10;
+    okV = [true];
+    Entry = []; //[s.]
+    iV = [0];
+    while(okV!) {
+      okV! = false;
+
+      ix1V! = html.indexFrom("<p", ix1V!);
+      if (ix1V! == -1) {
+        Ws.push("Timetable of FI date " + iV! + " not found(1)");
+        ix1V! = ix1Plus;
+        continue;
+      }
+      ix1V! = html.indexFrom(">", ix1V!);
+      if (ix1V! == -1) {
+        Ws.push("Timetable of FI date " + iV! + " date not found(2)");
+        ix1V! = ix1Plus;
+        continue;
+      }
+      ix2V! = html.indexFrom("<", ix1V!);
+      if (ix2V! == -1) {
+        Ws.push("Timetable of FI date " + iV! + " date close not found");
+        ix1V! = ix1Plus;
+        continue;
+      }
+      dateStr = str.trim(html[ix1V!+1:ix2V!]);
+      dateOp = time.fromIso(dateStr, ".");
+      if (!dateOp) {
+        dateOp2 = time.fromIso(dateStr, "/");
+        if (!dateOp2) {
+          Ws.push("Timetable of FI date " + iV! + " wrong date: " + dateStr);
+          ix1V! = ix1Plus;
+          continue;
+        }
+        dateOp.push(dateOp2!);
+      }
+
+      if (iV! == 0 | iV! == 1 | iV! == 5)
+        Entry.push(time.toStr(dateOp!));
+
+      if (iV! < 5) {
+        ix1V! = ix2V!;
+        iV! += 1;
+        okV! = true;
+      }
+    }
+
+    if (Entry.size() == 3)
+      Auctions.push([Entry[0], Entry[2], Entry[1]]);
+  }
+
+
+
+  return [{Auctions, Ws}, true];
+};

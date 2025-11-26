@@ -1,0 +1,176 @@
+// Copyright 04-Aug-2024 ºDeme
+// GNU General Public License - V3 <http://www.gnu.org/licenses/>
+
+/// Historic data from EXP.
+
+import "readers/common";
+import "data/historicQ";
+
+// Returns [newIx, textRead, error]
+//: \s, n, n, s, [s.], s -> [n, s, s]
+readField = \html, ix, endRow, fieldName, StartTxs, endTx -> {
+  ixV = [ix];
+  for (i, startTx = StartTxs) {
+    ixV! = str.indexFrom(html, startTx, ixV!);
+    if (ixV! == -1 | ixV! > endRow)
+      return [
+        -1, "",
+        str.fmt("'%v' start %v ('%v') not found", [fieldName, i + 1, startTx])
+      ];
+    ixV! += str.len(startTx);
+  }
+  ix2 = str.indexFrom(html, endTx, ixV!);
+  if (ix2 == -1 | ix2 > endRow)
+    return [
+      -1, "",
+      str.fmt("'%v' end ('%v') not found", [fieldName, endTx])
+    ];
+  return [ix2 + str.len(endTx), html[ixV!:ix2], ""];
+};
+
+/// Returns Result<{Qs:historic, Ws:warnings}>
+/// Historic values are sorted from after to before.
+/// \s -> [({Qs: [<historicQ>.], Ws: [s.]}|s), b]
+read = async \code -> {
+  now = time.toStr(time.now());
+
+  url = "https://www.expansion.com/mercados/cotizaciones/" +
+    "historicos/" + code + ".html"
+  ;
+  :str html = await common.read(url, 2000);
+
+  start = html.indexFrom("<tbody>", 0);
+  if (start == -1)
+    return ["Page start '<tbody>' not found", false];
+  end = html.indexFrom("</tbody>", start);
+  if (end == -1)
+    return ["Page end '</tbody>' not found", false];
+
+  Qs = []; // [<historicQ>.]
+  Ws = []; // [s.]
+  trEndV = [start];
+  while () {
+    trStart = html.indexFrom("<tr", trEndV!);
+    if (trStart == -1 | trStart > end) break;
+
+    trEndV! = html.indexFrom("</tr>", trStart);
+    if (trEndV! == -1 | trEndV! > end) {
+      Ws.push("End of row '</tr>' not found");
+      break;
+    }
+    trEnd = trEndV!;
+
+    // DATE
+
+    dateIx, dateS, dateWar = readField(
+      html, trStart, trEnd, "date", ["<th ", "-->"], "<"
+    );
+    if (dateWar != "") {
+      Ws.push(dateWar);
+      continue;
+    }
+    dateOp = time.fromIso(dateS, "/");
+    if (!dateOp) {
+      Ws.push("Bad date '" + dateS + "'");
+      continue;
+    }
+    date = time.toStr(dateOp!);
+    if (date == now) continue; // skip current date.
+
+    // OPEN
+
+    openIx, openS, openWar = readField(
+      html, dateIx, trEnd, "open", ["<td ", "-->"], "<"
+    );
+    if (openWar != "") {
+      Ws.push(openWar);
+      continue;
+    }
+    openOp = math.fromIso(openS);
+    if (!openOp) {
+      Ws.push("Bad Open '" + openS + "'");
+      arr.push(openOp, -1.0);
+    }
+    open = openOp! <= 0 ? -1.0 : openOp!;
+
+    // CLOSE
+
+    closeIx, closeS, closeWar = readField(
+      html, openIx, trEnd, "close", ["<td ", "-->"], "<"
+    );
+    if (closeWar != "") {
+      Ws.push(closeWar);
+      continue;
+    }
+    closeOp = math.fromIso(closeS);
+    if (!closeOp) {
+      Ws.push("Bad close '" + closeS + "'");
+      arr.push(closeOp, -1.0);
+    }
+    close = closeOp! <= 0 ? -1.0 : closeOp!;
+
+    // MAXIMUM
+
+    maxIx, maxS, maxWar = readField(
+      html, closeIx, trEnd, "max", ["<td ", "<td ", "<td ", "-->"], "<"
+    );
+    if (maxWar != "") {
+      Ws.push(maxWar);
+      continue;
+    }
+    maxOp = math.fromIso(maxS);
+    if (!maxOp) {
+      Ws.push("Bad maximum '" + maxS + "'");
+      arr.push(maxOp, -1.0);
+    }
+    max = maxOp! <= 0 ? -1.0 : maxOp!;
+
+    // MINIMUM
+
+    minIx, minS, minWar = readField(
+      html, maxIx, trEnd, "min", ["<td ", "-->"], "<"
+    );
+    if (minWar != "") {
+      Ws.push(minWar);
+      continue;
+    }
+    minOp = math.fromIso(minS);
+    if (!minOp) {
+      Ws.push("Bad minimum '" + minS + "'");
+      arr.push(minOp, -1.0);
+    }
+    min = minOp! <= 0 ? -1.0 : minOp!;
+
+    // VOLUME
+
+    volIx, volS, volWar = readField(
+      html, minIx, trEnd, "vol", ["<td ", "<td ", "-->"], "<"
+    );
+    if (volWar != "") {
+      Ws.push(volWar);
+      continue;
+    }
+    volOp = math.fromIso(volS);
+    if (!volOp) {
+      , vol2S, vol2War = readField(
+        html, volIx, trEnd, "vol2", ["</span>", "-->"], "<"
+      );
+      if (vol2War != "") {
+        Ws.push(vol2War);
+        continue;
+      }
+      vol2Op = math.fromIso(vol2S);
+      if (!vol2Op) {
+        Ws.push("Bad volume '" + vol2S + "'");
+        arr.push(volOp, -1.0); // Pushing in volOp is ok.
+      } else {
+        arr.push(volOp, vol2Op!);  // Pushing in volOp is ok.
+      }
+    }
+    vol = volOp! <= 0 ? -1.0 : volOp!;
+
+    Qs.push(historicQ.mk(date, open, close, max, min, vol));
+  }
+
+  return [{Qs, Ws}, true];
+};

@@ -1,0 +1,71 @@
+// Copyright 25-Jun-2024 ºDeme
+// GNU General Public License - V3 <http://www.gnu.org/licenses/>
+
+/// Exponential mobil average (2).
+
+import "../model";
+import "doc/ea2Doc";
+
+/// Returns a new 'appr' model.
+/// \ -> <model>
+mk = \ -> return model.mk(
+    "ME2",
+    "Media móvil exponencial (2)",
+    ea2Doc.text,
+    ["Días", "Banda"],
+    [model.dayParam, model.percParam],
+    refs
+  );;
+
+// \[[n.].], [n.] -> [[n.].]
+refs = \:arr Closes, :arr Params -> {
+  days = math.toInt(Params[0]);
+  strip = Params[1];
+  stripUp = 1 + strip;
+  stripDown = 1 - strip;
+  :arr Cls0 = Closes[0];
+  ndates = Closes.size();
+  ncos = Cls0.size();
+
+  IsSolds = arr.mk(ncos, false);
+  :arr Refs = Cls0.map( \cl -> return cl * stripDown;);
+  Avgs = Cls0.copy();
+
+  AllRefs = arr.mk(ndates, Refs.copy());
+  for (idate = 1:ndates) {
+    ClosesR = Closes[idate];
+
+    for (ico = 0:ncos) {
+      c = ClosesR[ico];
+      rf = Refs[ico];
+      avg = Avgs[ico];
+      newAvg = idate < days
+        ? avg + (c - avg) / idate
+        : avg + (c - avg) / days
+      ;
+      Avgs[ico] = newAvg;
+
+      if (IsSolds[ico]) {
+        if (c > rf) {
+          IsSolds[ico] = false;
+          Refs[ico] = newAvg * stripDown;
+        } else {
+          newRf = newAvg * stripUp;
+          if (newRf < rf) Refs[ico] = newRf;
+          else Refs[ico] = rf;
+        }
+      } else {
+        if (c < rf) {
+          IsSolds[ico] = true;
+          Refs[ico] = newAvg * stripUp;
+        } else {
+          newRf = newAvg * stripDown;
+          if (newRf > rf) Refs[ico] = newRf;
+          else Refs[ico] = rf;
+        }
+      }
+    }
+    AllRefs[idate] = Refs.copy();
+  }
+  return AllRefs;
+};

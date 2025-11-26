@@ -1,0 +1,43 @@
+// Copyright 25-Jun-2024 ºDeme
+// GNU General Public License - V3 <http://www.gnu.org/licenses/>
+
+/// Model list
+
+import "model";
+import "model/appr";
+import "model/appr2";
+import "model/appr3";
+import "model/ea";
+import "model/ea2";
+import "model/ma";
+import "model/mm";
+import "model/qfix";
+import "model/qmob";
+import "model/sprs";
+import "model/uudd";
+import "model/uudd0";
+import "model/uudd2";
+import "model/uuqf";
+
+/// Returns all the market models.
+/// \ -> [<model>.]
+list = \ -> return [
+    appr.mk(),
+    appr2.mk(),
+    appr3.mk(),
+    ea.mk(),
+    ea2.mk(),
+    ma.mk(),
+    mm.mk(),
+    qfix.mk(),
+    qmob.mk(),
+    sprs.mk(),
+    uudd.mk(),
+    uudd0.mk(),
+    uudd2.mk(),
+    uuqf.mk()
+  ];;
+
+/// Returns the model with identifier 'id'.
+/// \s -> ([<model>]|[])
+get = \id -> return arr.find(list(), \:model md -> return md.id == id;);;

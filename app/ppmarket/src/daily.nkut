@@ -1,0 +1,19 @@
+// Copyright 05-Aug-2024 ºDeme
+// GNU General Public License - V3 <http://www.gnu.org/licenses/>
+
+/// Daily data.
+
+import "daily/bym";
+import "daily/iberb";
+import "daily/pcb";
+
+/// Returns Result<{Qs:quotes, Ws:warnings}>
+/// \{*.} -> [({Qs: [<dailyQ>.], Ws: [s.]}|s), b]
+process = async \Rq -> {
+  switch (Rq.sv) {
+    "BYM": return await bym.read();
+    "IBERB": return await iberb.read();
+    "PCB": return await pcb.read();
+    default: throw "Server not found: " + Rq.sv;
+  }
+};

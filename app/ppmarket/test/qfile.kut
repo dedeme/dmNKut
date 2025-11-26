@@ -1,0 +1,79 @@
+// Copyright 04-Aug-2024 ºDeme
+// GNU General Public License - V3 <http://www.gnu.org/licenses/>
+
+/// File data test.
+
+import "test";
+
+/// \ -> ()
+bym = \ -> {
+  R, ok = test.rq({
+    rq: "file",
+    sv: "BYM",
+    code: "Aedas-Homes-ES0105287009"
+  });
+  if (!ok) {
+    sys.println(R);
+    return;
+  }
+
+  q, Ws : js.r(R);
+  if (!!Ws) {
+    sys.println(Ws);
+    return;
+  }
+
+   return q;
+
+  sys.test(sys.type(q), "arr");
+  sys.println(q);
+};
+
+/// \ -> ()
+bsmks = \ -> {
+  R, ok = test.rq({
+    rq: "file",
+    sv: "BSMKS",
+    code: "AEDAS"
+  });
+  if (!ok) {
+    sys.println(R);
+    return;
+  }
+
+  q, Ws : js.r(R);
+  if (!!Ws) {
+    sys.println(Ws);
+    return;
+  }
+
+  return q;
+
+  sys.test(sys.type(q), "arr");
+  sys.println(q);
+};
+
+/// \ -> ()
+pcb = \ -> {
+  R, ok = test.rq({
+    rq: "file",
+    sv: "PCB",
+    code: "Aedas-Hom"
+  });
+  if (!ok) {
+    sys.println("error");
+    sys.println(R);
+    return;
+  }
+
+  q, Ws : js.r(R);
+  if (!!Ws) {
+    sys.println(Ws);
+    return;
+  }
+
+  return q;
+
+  sys.test(sys.type(q), "arr");
+  sys.println(q);
+};

@@ -1,0 +1,45 @@
+// Copyright 19-Mar-2024 ºDeme
+// GNU General Public License - V3 <http://www.gnu.org/licenses/>
+
+/// Constants of libmkt
+
+/// Number of quotes in historic tables.
+/// n
+historicQuotes = 610;
+
+/// Initial capital.
+/// n
+initialCapital = 300000;
+
+/// Bet
+/// n
+bet = 15000;
+
+/// Minumum to bet
+/// n
+minToBet = 16000.0;
+
+/// Maximum purchased companies (= initialCapital / bet).
+/// n
+maxCos = 20;
+
+/// Delay days after a sale with losses (in 5 days per week).
+/// n
+daysLoss = 45;
+
+/// Multiplicator to calculate if should be applied 'daysLoss'.
+/// n
+noLossMultiplicator = 1.02;
+
+/// Cash limit to do a withdrawal (= initialCapital + bet + bet).
+/// n
+withdrawalLimit = 330000;
+
+/// Type of order.
+/// n
+orderBuy = 0;
+
+/// Type of order.
+/// n
+orderSell = 1;
+

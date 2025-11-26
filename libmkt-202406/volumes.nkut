@@ -1,0 +1,35 @@
+// Copyright 25-Jun-2024 ºDeme
+// GNU General Public License - V3 <http://www.gnu.org/licenses/>
+
+/// Read volume average (in €) of serveral companies.
+/// Returns one value for each company. If data can not be read, the company
+/// value is set to 0.
+///   dpath  : Directory with files 'NICK'.tb.
+///   samples: Number of samples to make the average.
+///   Cos    : Nicks of companies to read.
+/// \s, n, [s.] -> [n.]
+read = \dpath, samples, Cos -> {
+  Vols = [];
+
+  for (c = Cos) {
+    fpath = file.cat([dpath, c + ".tb"]);
+    qsStr = str.trim(file.read(fpath));
+
+    nsamplesV = [0];
+    sumV = [0];
+    for (l = str.split(qsStr, "\n")) {
+      ps = str.split(l, ":");
+      mx = math.fromStr(ps[3])!;
+      mn = math.fromStr(ps[4])!;
+      v = math.fromStr(ps[5])!;
+      if (mx <= 0 | mn <= 0 | v < 0) continue;
+
+      sumV! += (mx + mn) * v;
+      nsamplesV! += 1;
+      if (nsamplesV! >= samples) break;
+    }
+
+    Vols.push(sumV[0] / (samples * 2.0));
+  }
+  return Vols;
+};

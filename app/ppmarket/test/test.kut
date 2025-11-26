@@ -1,0 +1,193 @@
+// Copyright 04-Aug-2024 ºDeme
+// GNU General Public License - V3 <http://www.gnu.org/licenses/>
+
+import "historic";
+import "data/historicQ";
+import "qfile";
+import "daily";
+import "current";
+import "ixs";
+
+/// \{*.} -> [(*|s), b]
+rq = \r -> {
+  R, ok = sys.cmd("ppmarket", [b64.encode(js.w(r))]);
+  return [str.rtrim(R), ok];
+};
+
+{ // Historic --------------------------------------------
+
+  bymIx = 3;
+  Names = ["exp", "pcb", "yahoo", "bym"];
+  fail = \field, date, sv1, sv2, v1, v2 -> return str.fmt(
+      "%v of date %v not match in %v (%v) and %v (%v)",
+      [field, date, Names[sv1], v1, Names[sv2], v2]
+    );;
+  Reads = [
+    historic.exp,
+    historic.pcb,
+    historic.yahoo,
+    historic.bym
+  ];
+  ReadRs = [0, 0, 0, 0]; //[[[({Qs: [<historicQ>.], Ws: [s.]}|s), b].]|s, b]
+                         //0's are values of convenience.
+  Threads = [0, 0, 0, 0]; //[<thread>.] . 0's are values of convenience.
+  for (i = 0:Reads.size()) {
+    ix = i;
+    Threads[ix] = thread.start(\ -> ReadRs[ix] = Reads[ix](););
+  }
+  for (:thread th = Threads) th.join();
+
+  Errors = []; //[s.]
+  Warnings = []; //[s.]
+  DataFails = []; //[s.]
+
+  Qss = []; // [[<historicQ>.]]
+  for (rsRs = ReadRs) {
+    eRs, ok = rsRs;
+    if (!ok) Errors.push(eRs);
+    else {
+      qsWs, ok = js.r(eRs);
+      if (!ok) Errors.push(qsWs);
+      else {
+        Qss.push(qsWs["Qs"]);
+        Warnings.cat(qsWs["Ws"]);
+      }
+    }
+  }
+
+  if (!!Errors) {
+    sys.println("Errors found in historic readers:\n" + Errors.join("\n"));
+    return;
+  }
+
+  d3Op = [];
+  d5Op = [];
+  for (:arr Qs = Qss) if (Qs.size() > 5) {
+    d3Op.push(Qs[3][historicQ.date]);
+    d5Op.push(Qs[5][historicQ.date]);
+  }
+  if (!d3Op) {
+    sys.println("Errors found in historic readers:\n" +
+      "No reader has more than 5 quotes"
+    );
+    return;
+  }
+  d3 = d3Op!;
+  d5 = d5Op!;
+
+  for (i1, :arr Qs1 = Qss) {
+    q3aOp = Qs1.find(\:historicQ q -> return q.date == d3;);
+    q5aOp = Qs1.find(\:historicQ q -> return q.date == d5;);
+    if (!q3aOp | !q5aOp) {
+      if (!q3aOp) DataFails.push("Date " + d3 + " not found in " + Names[i1]);
+      if (!q5aOp) DataFails.push("Date " + d5 + " not found in " + Names[i1]);
+      continue;
+    }
+    :historicQ q3a = q3aOp!;
+    :historicQ q5a = q5aOp!;
+    for (i2 = i1 + 1 : Qss.size()) {
+      :arr Qs2 = Qss[i2];
+      q3bOp = Qs2.find(\:historicQ q -> return q.date == d3;);
+      q5bOp = Qs2.find(\:historicQ q -> return q.date == d5;);
+      if (!q3bOp | !q5bOp) continue;
+      :historicQ q3b = q3bOp!;
+      :historicQ q5b = q5bOp!;
+      if (i1 != bymIx & i2 != bymIx) {
+        if (q3a.open != q3b.open)
+          DataFails.push(fail("open", d3, i1, i2, q3a.open, q3b.open));
+        if (q5a.open != q5b.open)
+          DataFails.push(fail("open", d5, i1, i2, q5a.open, q5b.open));
+      }
+
+      if (q3a.close != q3b.close)
+        DataFails.push(fail("close", d3, i1, i2, q3a.close, q3b.close));
+      if (q3a.max != q3b.max)
+        DataFails.push(fail("max", d3, i1, i2, q3a.max, q3b.max));
+      if (q3a.min != q3b.min)
+        DataFails.push(fail("min", d3, i1, i2, q3a.min, q3b.min));
+      if (q3a.vol != q3b.vol)
+        DataFails.push(fail("vol", d3, i1, i2, q3a.vol, q3b.vol));
+
+      if (q5a.close != q5b.close)
+        DataFails.push(fail("close", d5, i1, i2, q5a.close, q5b.close));
+      if (q5a.max != q5b.max)
+        DataFails.push(fail("max", d5, i1, i2, q5a.max, q5b.max));
+      if (q5a.min != q5b.min)
+        DataFails.push(fail("min", d5, i1, i2, q5a.min, q5b.min));
+      if (q5a.vol != q5b.vol)
+        DataFails.push(fail("vol", d5, i1, i2, q5a.vol, q5b.vol));
+    }
+  }
+
+  if (!!Warnings)
+    sys.println("Warnings found in historic readers:\n" + Warnings.join("\n"));
+  if (!!DataFails)
+    sys.println("Fails found in historic readers:\n" + DataFails.join("\n"));
+}
+{ // File ------------------------------------------------
+  //qfile.bym();
+  //qfile.bsmks();
+  //qfile.pcb();
+
+  /*
+  Q1V = [[]];
+  Q2V = [[]];
+  Q3V = [[]];
+  :thread th1 = thread.start(\ -> Q1V! = qfile.bym(););
+  :thread th2 = thread.start(\ -> Q2V! = qfile.bsmks(););
+  :thread th3 = thread.start(\ -> Q3V! = qfile.pcb(););
+
+  th1.join();
+  th2.join();
+  th3.join();
+
+  sys.println(Q1V);
+  sys.println(Q2V);
+  sys.println(Q3V);
+  */
+}
+{ // Daily -------------------------------------------------
+  //daily.bym();
+  //daily.iberb();
+  //daily.pcb();
+
+  /*
+  Q1V = [[]];
+  Q2V = [[]];
+  Q3V = [[]];
+  :thread th1 = thread.start(\ -> Q1V! = daily.bym(););
+  :thread th2 = thread.start(\ -> Q2V! = daily.iberb(););
+  :thread th3 = thread.start(\ -> Q3V! = daily.pcb(););
+
+  th1.join();
+  th2.join();
+  th3.join();
+
+  sys.println(Q1V);
+  sys.println(Q2V);
+  sys.println(Q3V);
+  */
+}
+{ // Current -----------------------------------------------
+  //current.bym();
+  //current.iberb();
+
+  /*
+  Q1V = [[]];
+  Q2V = [[]];
+  :thread th1 = thread.start(\ -> Q1V! = current.bym(););
+  :thread th2 = thread.start(\ -> Q2V! = current.iberb(););
+
+  th1.join();
+  th2.join();
+
+  sys.println(Q1V);
+  sys.println(Q2V);
+  */
+}
+{ // Ixs ---------------------------------------------------
+  //ixs.ibex();
+  //ixs.ibexCos();
+  //ixs.ixs();
+}
+

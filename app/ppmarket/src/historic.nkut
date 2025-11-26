@@ -1,0 +1,22 @@
+// Copyright 04-Aug-2024 ºDeme
+// GNU General Public License - V3 <http://www.gnu.org/licenses/>
+
+/// Historic data.
+
+import "historic/bym";
+import "historic/exp";
+import "historic/pcb";
+import "historic/yahoo";
+
+/// Returns Result<{Qs:historic, Ws:warnings}>
+/// Historic values are sorted from after to before.
+/// \{*.} -> [({Qs: [<historicQ>.], Ws: [s.]}|s), b]
+process = async \Rq -> {
+  switch (Rq.sv) {
+    "BYM": return await bym.read(Rq.code);
+    "EXP": return await exp.read(Rq.code);
+    "PCB": return await pcb.read(Rq.code);
+    "YAHOO": return await yahoo.read(Rq.code);
+    default: throw "Server not found: " + Rq.sv;
+  }
+};

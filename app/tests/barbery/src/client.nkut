@@ -1,0 +1,38 @@
+// Copyright 23-Jun-2024 ºDeme
+// GNU General Public License - V3 <http://www.gnu.org/licenses/>
+
+import "cts";
+import "shop";
+
+iV = [0];
+clTmV = [0];
+clDelayV = [1 + math.rndi(cts.clientMakerTime)];
+
+/// \[b], <timer> -> ()
+makerRun = \endV, :timer tm -> {
+  if (shop.isPreopenV! | shop.isOpenV!) {
+    if (thread.sleep(clTmV, clDelayV!)) return;
+
+    clDelayV! = 1 + math.rndi(cts.clientMakerTime);
+    iV! += 1;
+    run(mk(iV!));
+
+    return;
+  }
+
+  tm.stop();
+  endV! = true;
+};
+
+//
+mk = \i -> return math.toStr(i);;
+
+//
+run = \cl -> {
+  msg = \m -> sys.println(str.fmt("Client %v: %v", [cl, m]));;
+
+  msg("Arrive to barbery");
+  if (!shop.isOpenV!) msg("Go out because barbery is close");
+  else if (shop.isFull()) msg("Go out because barbery is full");
+  else shop.takeASit(cl);
+};

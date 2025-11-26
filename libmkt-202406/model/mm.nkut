@@ -1,0 +1,65 @@
+// Copyright 25-Jun-2024 ºDeme
+// GNU General Public License - V3 <http://www.gnu.org/licenses/>
+
+/// Maximum - minimum.
+
+import "../model";
+import "doc/mmDoc";
+
+/// Returns a new 'appr' model.
+/// \ -> <model>
+mk = \ -> return model.mk(
+    "MX_MN",
+    "Máximo - Mínimo",
+		mmDoc.text,
+		["Días", "Banda"],
+    [model.dayParam, model.percParam],
+    refs
+  );;
+
+// \[[n.].], [n.] -> [[n.].]
+refs = \:arr Closes, :arr Params -> {
+  days = math.toInt(Params[0] + 0.4);
+  strip = Params[1];
+  stripUp = 1 + strip;
+  stripDown = 1 - strip;
+  :arr Cls0 = Closes[0];
+  ndates = Closes.size();
+  ncos = Cls0.size();
+
+  IsSolds = arr.mk(ncos, false);
+  :arr Refs = Cls0.map(\cl -> return cl * stripDown;);
+
+  AllRefs = arr.mk(ndates, Refs.copy());
+  for (idate = 1:ndates) {
+    ClosesR = Closes[idate];
+    OldCloses = idate >= days ? Closes[idate - days] : Cls0;
+
+    for (ico = 0:ncos) {
+      c = ClosesR[ico];
+      oldC = OldCloses[ico];
+      rf = Refs[ico];
+      if (IsSolds[ico]) {
+        if (c > rf) {
+          IsSolds[ico] = false;
+          Refs[ico] = oldC * stripDown;
+        } else {
+          newRf = oldC * stripUp;
+          if (newRf < rf) Refs[ico] = newRf;
+          else Refs[ico] = rf;
+        }
+      } else {
+        if (c < rf) {
+          IsSolds[ico] = true;
+          Refs[ico] = oldC * stripUp;
+        } else {
+          newRf = oldC * stripDown;
+          if (newRf > rf) Refs[ico] = newRf;
+          else Refs[ico] = rf;
+        }
+      }
+    }
+    AllRefs[idate] = Refs.copy();
+  }
+  return AllRefs;
+};

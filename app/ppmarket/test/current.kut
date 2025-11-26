@@ -1,0 +1,53 @@
+// Copyright 04-Aug-2024 ºDeme
+// GNU General Public License - V3 <http://www.gnu.org/licenses/>
+
+/// Daily data test.
+
+import "test";
+
+/// \ -> ()
+bym = \ -> {
+  R, ok = test.rq({
+    rq: "current",
+    sv: "BYM"
+  });
+  if (!ok) {
+    sys.println(R);
+    return;
+  }
+
+  Qs, ok2 = js.r(R);
+  if (!ok2) {
+    sys.println(Qs);
+    return;
+  }
+
+  return Qs;
+
+  sys.test(sys.type(Qs), "arr");
+  for (q = Qs) sys.println(q);
+};
+
+/// \ -> ()
+iberb = \ -> {
+  R, ok = test.rq({
+    rq: "current",
+    sv: "IBERB"
+  });
+  if (!ok) {
+    sys.println(R);
+    return;
+  }
+
+  Qs, ok2 = js.r(R);
+  if (!ok2) {
+    sys.println(Qs);
+    return;
+  }
+
+  return Qs;
+
+  sys.test(sys.type(Qs), "arr");
+  for (q = Qs) sys.println(q);
+};
+

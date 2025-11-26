@@ -1,0 +1,198 @@
+// Copyright 05-Aug-2024 ºDeme
+// GNU General Public License - V3 <http://www.gnu.org/licenses/>
+
+/// Historic data from PCB.
+
+import "readers/common";
+import "data/historicQ";
+
+/// Returns Result<{Qs:historic, Ws:warnings}>
+/// Historic values are sorted from after to before.
+/// \s -> [({Qs: [<historicQ>.], Ws: [s.]}|s), b]
+read = async \code -> {
+  now = time.toStr(time.now());
+
+  url = "https://pcbolsa.com/historico/" + code;
+  :str html = await common.read(url, 2000);
+
+  start = html.indexFrom("\"HistoRicoDiv\"", 0);
+  if (start == -1)
+    return ["Page start '\"HistoRicoDiv\"' not found", false];
+  end = html.indexFrom("InitTi();", start);
+  if (end == -1)
+    return ["Page end 'InitTi();' not found", false];
+
+  Qs = []; // [<historicQ>.]
+  Ws = []; // [s.]
+  trEndV = [start];
+  while () {
+    trStart = html.indexFrom("Fecha=", trEndV!);
+    if (trStart == -1 | trStart > end) break;
+
+    trEndV! = html.indexFrom("</div></a>", trStart);
+    if (trEndV! == -1 | trEndV! > end) {
+      Ws.push("End of row '</div></a>' not found");
+      break;
+    }
+
+    // DATE
+
+    dateStart = html.indexFrom("=", trStart);
+    if (dateStart == -1 | dateStart > trEndV!) {
+      Ws.push("Date start '=' not found");
+      continue;
+    }
+    dateEnd = html.indexFrom('"', dateStart);
+    if (dateEnd == -1 | dateEnd > trEndV!) {
+      Ws.push("Date end '\"' not found");
+      continue;
+    }
+    dateS = html[dateStart + 1:dateEnd];
+    dateOp = time.fromStr(dateS);
+    if (!dateOp) {
+      Ws.push("Bad date '" + dateS + "'");
+      continue;
+    }
+    date = time.toStr(dateOp!);
+    if (date == now) continue; // skip current date.
+
+    // CLOSE
+
+    closeStartV = [html.indexFrom("FilaTickText", dateEnd)];
+    if (closeStartV! == -1 | closeStartV! > trEndV!) {
+      Ws.push("Close start (1) 'FilaTickText' not found");
+      continue;
+    }
+    closeStartV! = html.indexFrom("FilaTickText", closeStartV! + 12);
+    if (closeStartV! == -1 | closeStartV! > trEndV!) {
+      Ws.push("Close start (2) 'FilaTickText' not found");
+      continue;
+    }
+    closeStartV! = html.indexFrom(">", closeStartV! + 12);
+    if (closeStartV! == -1 | closeStartV! > trEndV!) {
+      Ws.push("Close start (3) '>' not found");
+      continue;
+    }
+    closeEnd = html.indexFrom("<", closeStartV!);
+    if (closeEnd == -1 | closeEnd > trEndV!) {
+      Ws.push("Close end '<' not found");
+      continue;
+    }
+    closeS = html[closeStartV! + 1:closeEnd];
+    closeOp = math.fromIso(closeS);
+    if (!closeOp) {
+      Ws.push("Bad close '" + closeS + "'");
+      arr.push(closeOp, -1.0);
+    }
+    close = closeOp! <= 0 ? -1.0 : closeOp!;
+
+    // MAXIMUM
+
+    maxStartV = [html.indexFrom("FilaTickText", closeEnd)];
+    if (maxStartV! == -1 | maxStartV! > trEndV!) {
+      Ws.push("Maximum start (1) 'FilaTickText' not found");
+      continue;
+    }
+    maxStartV! = html.indexFrom("FilaTickText", maxStartV! + 12);
+    if (maxStartV! == -1 | maxStartV! > trEndV!) {
+      Ws.push("Maximum start (2) 'FilaTickText' not found");
+      continue;
+    }
+    maxStartV! = html.indexFrom(">", maxStartV! + 12);
+    if (maxStartV! == -1 | maxStartV! > trEndV!) {
+      Ws.push("Maximum start (3) '>' not found");
+      continue;
+    }
+    maxEnd = html.indexFrom(" ", maxStartV!);
+    if (maxEnd == -1 | maxEnd > trEndV!) {
+      Ws.push("Maximum end ' ' not found");
+      continue;
+    }
+    maxS = html[maxStartV! + 1:maxEnd];
+    maxOp = math.fromIso(maxS);
+    if (!maxOp) {
+      Ws.push("Bad maximum '" + maxS + "'");
+      arr.push(maxOp, -1.0);
+    }
+    max = maxOp! <= 0 ? -1.0 : maxOp!;
+
+    // MINIMUM
+
+    minStartV = [html.indexFrom("FilaTickText", maxEnd)];
+    if (minStartV! == -1 | minStartV! > trEndV!) {
+      Ws.push("Minimum start (1) 'FilaTickText' not found");
+      continue;
+    }
+    minStartV! = html.indexFrom(">", minStartV! + 12);
+    if (minStartV! == -1 | minStartV! > trEndV!) {
+      Ws.push("Minimum start (2) '>' not found");
+      continue;
+    }
+    minEnd = html.indexFrom(" ", minStartV!);
+    if (minEnd == -1 | minEnd > trEndV!) {
+      Ws.push("Minimum end ' ' not found");
+      continue;
+    }
+    minS = html[minStartV! + 1:minEnd];
+    minOp = math.fromIso(minS);
+    if (!minOp) {
+      Ws.push("Bad minimum '" + minS + "'");
+      arr.push(minOp, -1.0);
+    }
+    min = minOp! <= 0 ? -1.0 : minOp!;
+
+    // OPEN
+
+    openStartV = [html.indexFrom("FilaTickText", minEnd)];
+    if (openStartV! == -1 | openStartV! > trEndV!) {
+      Ws.push("Open start (1) 'FilaTickText' not found");
+      continue;
+    }
+    openStartV! = html.indexFrom(">", openStartV! + 12);
+    if (openStartV! == -1 | openStartV! > trEndV!) {
+      Ws.push("Open start (2) '>' not found");
+      continue;
+    }
+    openEnd = html.indexFrom(" ", openStartV!);
+    if (openEnd == -1 | openEnd > trEndV!) {
+      Ws.push("Open end ' ' not found");
+      continue;
+    }
+    openS = html[openStartV! + 1:openEnd];
+    openOp = math.fromIso(openS);
+    if (!openOp) {
+      Ws.push("Bad open '" + openS + "'");
+      arr.push(openOp, -1.0);
+    }
+    open = openOp! <= 0 ? -1.0 : openOp!;
+
+    // VOLUME
+
+    volStartV = [html.indexFrom("FilaTickText", openEnd)];
+    if (volStartV! == -1 | volStartV! > trEndV!) {
+      Ws.push("Open start (1) 'FilaTickText' not found");
+      continue;
+    }
+    volStartV! = html.indexFrom(">", volStartV! + 12);
+    if (volStartV! == -1 | volStartV! > trEndV!) {
+      Ws.push("Open start (2) '>' not found");
+      continue;
+    }
+    volEnd = html.indexFrom("<", volStartV!);
+    if (volEnd == -1 | volEnd > trEndV!) {
+      Ws.push("Open end '<' not found");
+      continue;
+    }
+    volS = html[volStartV! + 1:volEnd];
+    volOp = math.fromIso(volS);
+    if (!volOp) {
+      Ws.push("Bad open '" + volS + "'");
+      arr.push(openOp, -1.0);
+    }
+    vol = volOp! <= 0 ? -1.0 : volOp!;
+
+    Qs.push(historicQ.mk(date, open, close, max, min, vol));
+  }
+
+  return [{Qs, Ws}, true];
+};

@@ -1,0 +1,43 @@
+// Copyright 21-Mar-2024 ºDeme
+// GNU General Public License - V3 <http://www.gnu.org/licenses/>
+
+/// Strategy simple test.
+
+import "libmkt/models";
+import "libmkt/model";
+import "libmkt/quotes";
+import "libmkt/strategy";
+import "libmkt/stRs";
+import "extDb/quotesDb";
+import "data/simParams";
+
+/// Returns
+///   {{ref:f, orders:i, hassets:f, hwithdrawals:f, cash:f,
+///     buys:i, sales:i, profits:f}.} ::
+///     {modelId: Rs}
+/// \{*.} -> {*.}
+run = \Rq -> {
+  :quotes qts = quotesDb.read();
+  List = models.list();
+
+  MdRs = {}; // {ref:f, orders:i, hassets:f, hwithdrawals:f, cash:f,
+             //  buys:i, sales:i, profits:f}.}
+  for (:model md = List) {
+    Params = simParams.paramBases(md.id);
+    Refs = md.refs(qts.Closes, Params);
+    :stRs Rs = strategy.open(md, qts, Refs);
+
+    MdRs.put(md.id, {
+      ref: arr.reduce(arr.peek(Refs), 0.0, \r, e -> return r + e;),
+      orders: arr.size(Rs.Orders),
+      hassets: arr.peek(Rs.Hreals),
+      hwithdrawals: arr.peek(Rs.Hwithdrawals),
+      cash: Rs.cash,
+      buys: arr.size(arr.peek(Rs.Buys)),
+      sales: arr.size(arr.peek(Rs.Sales)),
+      profits: arr.peek(Rs.Profits)
+    });
+  }
+
+  return MdRs;
+};

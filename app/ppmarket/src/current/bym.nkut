@@ -1,0 +1,19 @@
+// Copyright 06-Aug-2024 ºDeme
+// GNU General Public License - V3 <http://www.gnu.org/licenses/>
+
+/// Current data from BYM.
+
+import "daily/bym";
+import "data/dailyQ";
+import "data/currentQ";
+
+/// \ -> [([<currentQ>.]|s), b]
+read = async \ -> {
+  QW, ok = await bym.read();
+  if (!ok) return QW;
+  Qs = [];
+  for (:dailyQ q = QW.Qs)
+    Qs.push(currentQ.mk(q.code, q.close));
+
+  return [Qs, true];
+};

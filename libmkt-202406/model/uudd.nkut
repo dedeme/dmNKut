@@ -1,0 +1,70 @@
+// Copyright 25-Jun-2024 ºDeme
+// GNU General Public License - V3 <http://www.gnu.org/licenses/>
+
+/// up-up, down-down model.
+
+import "../model";
+import "doc/uuddDoc";
+
+/// Returns a new 'appr2' model.
+/// \ -> <model>
+mk = \ -> return model.mk(
+    "SS_BB",
+    "Sube-Sube/Baja-Baja",
+    uuddDoc.text,
+    ["Inicio", "Veloc."],
+    [model.percParam, model.percParam],
+    refs
+  );;
+
+// \[[n.].], [n.] -> [[n.].]
+refs = \:arr Closes, :arr Params -> {
+  start = Params[0];
+  upStart = 1 + start;
+  downStart = 1 - start;
+  speed = Params[1] * 10;
+  :arr Cls0 = Closes[0];
+  ndates = Closes.size();
+  ncos = Cls0.size();
+
+  AllRefs = []; // [[n.].]
+  IsSolds = arr.mk(ncos, false);
+  Refs = []; // [n.]
+  for (cl = Cls0) Refs.push(cl * downStart);
+
+  AllRefs.push(Refs.copy());
+  for (idate = 1:ndates) {
+    ClosesR = Closes[idate];
+    PrvCloses = Closes[idate - 1];
+
+    for (ico = 0:ncos) {
+      c = ClosesR[ico];
+      prvC = PrvCloses[ico];
+      rf = Refs[ico];
+
+      if (IsSolds[ico]) {
+        if (c > rf) {
+          IsSolds[ico] = false;
+          Refs[ico] = c * downStart;
+        } else {
+          dif = c - prvC;
+          rf0 = rf * (prvC + dif * speed) / prvC;
+          rf2 = rf < rf0 ? rf : rf0;
+          Refs[ico] = rf2;
+        }
+      } else {
+        if (c < rf) {
+          IsSolds[ico] = true;
+          Refs[ico] = c * upStart;
+        } else {
+          dif = c - prvC;
+          rf0 = rf * (prvC + dif * speed) / prvC;
+          rf2 = rf > rf0 ? rf : rf0;
+          Refs[ico] = rf2;
+        }
+      }
+    }
+    AllRefs.push(Refs.copy());
+  }
+  return AllRefs;
+};
